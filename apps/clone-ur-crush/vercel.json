@@ -1,0 +1,7 @@
+{
+  "buildCommand": "cd ../.. && npm install && npx turbo run build --filter=clone-ur-crush",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install",
+  "framework": "nextjs",
+  "outputDirectory": ".next"
+}
