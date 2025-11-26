@@ -102,10 +102,8 @@ export default function ConnectingPage() {
         const elizaCloudUrl =
           process.env.NEXT_PUBLIC_ELIZA_CLOUD_URL || "http://localhost:3000";
 
-        // Build redirect URL with proper query parameters (use /crush-chat for themed experience)
-        const redirectUrl = new URL(
-          `${elizaCloudUrl}/crush-chat/${characterId}`,
-        );
+        // Build redirect URL - theming is now dynamic based on source param
+        const redirectUrl = new URL(`${elizaCloudUrl}/chat/${characterId}`);
         redirectUrl.searchParams.set("intro", "true");
         redirectUrl.searchParams.set("source", "clone-your-crush");
         redirectUrl.searchParams.set("session", sessionId);
