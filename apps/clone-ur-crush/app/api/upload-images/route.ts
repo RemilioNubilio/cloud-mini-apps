@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { put } from "@vercel/blob";
+import { writeFile, mkdir } from "fs/promises";
+import { existsSync } from "fs";
+import path from "path";
 
 const VALID_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -12,27 +15,23 @@ interface UploadImageResponse {
   error?: string;
 }
 
+// Check if we're using local storage (development fallback)
+const useLocalStorage = !process.env.BLOB_READ_WRITE_TOKEN;
+
 /**
  * POST /api/upload-images
  * 
  * Upload 1-3 images to Vercel Blob storage for character avatars
+ * Falls back to local file storage for development when BLOB_READ_WRITE_TOKEN is not set
  * 
  * Request: multipart/form-data with "images" field (File[])
  * Response: { success: true, urls: string[] }
  */
 export async function POST(request: NextRequest): Promise<NextResponse<UploadImageResponse>> {
   try {
-    // 1. CHECK BLOB TOKEN CONFIGURATION
-    // Note: BLOB_READ_WRITE_TOKEN is automatically set by Vercel when you connect Blob Storage
-    if (!process.env.BLOB_READ_WRITE_TOKEN) {
-      console.error("[Upload Images] BLOB_READ_WRITE_TOKEN not configured");
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Server configuration error. Image upload is not available.",
-        },
-        { status: 500 }
-      );
+    // Log storage mode
+    if (useLocalStorage) {
+      console.log("[Upload Images] Using local file storage (development mode)");
     }
 
     // 2. PARSE MULTIPART FORM DATA
@@ -125,7 +124,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<UploadIma
 
     console.log(`[Upload Images] Uploading ${images.length} image(s)...`);
 
-    // 5. UPLOAD TO VERCEL BLOB
+    // 5. UPLOAD IMAGES (Vercel Blob or local storage)
     const uploadPromises = images.map(async (image, index) => {
       try {
         // Convert File to Buffer
@@ -141,16 +140,35 @@ export async function POST(request: NextRequest): Promise<NextResponse<UploadIma
           .toLowerCase();
         const filename = `${timestamp}-${randomSuffix}-${sanitizedName}`;
 
-        // Upload to Vercel Blob in "crush-avatars" folder
-        const blob = await put(`crush-avatars/${filename}`, buffer, {
-          access: "public",
-          contentType: image.type,
-          addRandomSuffix: false, // We already added timestamp + random suffix
-        });
+        if (useLocalStorage) {
+          // LOCAL STORAGE: Save to public/uploads directory
+          const uploadsDir = path.join(process.cwd(), "public", "uploads", "crush-avatars");
+          
+          // Create uploads directory if it doesn't exist
+          if (!existsSync(uploadsDir)) {
+            await mkdir(uploadsDir, { recursive: true });
+          }
 
-        console.log(`[Upload Images] ✅ Uploaded image ${index + 1}/${images.length}: ${filename}`);
+          const filePath = path.join(uploadsDir, filename);
+          await writeFile(filePath, buffer);
 
-        return blob.url;
+          // Return local URL (accessible via /uploads/crush-avatars/filename)
+          const localUrl = `/uploads/crush-avatars/${filename}`;
+          console.log(`[Upload Images] ✅ Saved locally ${index + 1}/${images.length}: ${localUrl}`);
+          
+          return localUrl;
+        } else {
+          // VERCEL BLOB: Upload to cloud storage
+          const blob = await put(`crush-avatars/${filename}`, buffer, {
+            access: "public",
+            contentType: image.type,
+            addRandomSuffix: false, // We already added timestamp + random suffix
+          });
+
+          console.log(`[Upload Images] ✅ Uploaded to Vercel Blob ${index + 1}/${images.length}: ${filename}`);
+
+          return blob.url;
+        }
       } catch (error) {
         console.error(`[Upload Images] ❌ Failed to upload image ${index + 1}:`, error);
         throw new Error(
@@ -177,7 +195,8 @@ export async function POST(request: NextRequest): Promise<NextResponse<UploadIma
     }
 
     // 6. RETURN SUCCESS RESPONSE
-    console.log(`[Upload Images] ✅ Successfully uploaded ${uploadedUrls.length} image(s)`);
+    const storageType = useLocalStorage ? "locally" : "to Vercel Blob";
+    console.log(`[Upload Images] ✅ Successfully uploaded ${uploadedUrls.length} image(s) ${storageType}`);
 
     return NextResponse.json({
       success: true,
