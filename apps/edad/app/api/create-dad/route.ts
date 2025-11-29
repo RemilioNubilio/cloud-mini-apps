@@ -46,8 +46,7 @@ const VALID_VIBES: DadVibe[] = [
 const VIBE_PROMPTS: Record<DadVibe, string> = {
   supportive:
     "supportive, encouraging, always celebrates their wins, believes in them unconditionally, proud of everything they do",
-  wise:
-    "wise, thoughtful, shares life lessons, gives philosophical advice, helps them see the bigger picture",
+  wise: "wise, thoughtful, shares life lessons, gives philosophical advice, helps them see the bigger picture",
   funny:
     "funny, loves dad jokes, playful banter, keeps things lighthearted, always ready with a pun",
   strict:
@@ -195,11 +194,11 @@ export async function POST(request: NextRequest) {
 
     // 5. CALL ELIZAOS CLOUD AFFILIATE API
     const elizaCloudUrl =
-      process.env.NEXT_PUBLIC_ELIZA_CLOUD_URL || "http://localhost:3000";
-    const apiKey = process.env.ELIZA_CLOUD_API_KEY;
+      process.env.NEXT_PUBLIC_EDAD_ELIZA_URL || "http://localhost:3000";
+    const apiKey = process.env.EDAD_ELIZA_API_KEY;
 
     if (!apiKey) {
-      console.error("[Create-Dad API] ELIZA_CLOUD_API_KEY not configured");
+      console.error("[Create-Dad API] EDAD_ELIZA_API_KEY not configured");
       return NextResponse.json(
         { error: "Server configuration error. Please contact support." },
         { status: 500 }
@@ -316,4 +315,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
