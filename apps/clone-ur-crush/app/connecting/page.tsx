@@ -99,7 +99,7 @@ export default function ConnectingPage() {
 
     if (characterId && sessionId) {
       redirectTimeout = setTimeout(() => {
-        const elizaCloudUrl = process.env.NEXT_PUBLIC_ELIZA_CLOUD_URL || "http://localhost:3000";
+        const elizaCloudUrl = process.env.NEXT_PUBLIC_CLONEURCRUSH_ELIZA_URL || "http://localhost:3000";
 
         // Build redirect URL - theming is now dynamic based on source param
         const redirectUrl = new URL(`${elizaCloudUrl}/chat/${characterId}`);
