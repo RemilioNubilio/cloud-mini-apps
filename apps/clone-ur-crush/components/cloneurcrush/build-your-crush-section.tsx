@@ -271,7 +271,7 @@ export default function BuildYourCrushSection() {
 
     try {
       // STEP 1: Upload images (if provided)
-      let avatarUrl: string | undefined;
+      let avatarBase64: string | undefined;
       let imageUrls: string[] = [];
 
       if (photos.length > 0) {
@@ -297,12 +297,21 @@ export default function BuildYourCrushSection() {
           }
 
           const uploadResult = await uploadResponse.json();
-          imageUrls = uploadResult.urls || [];
-          avatarUrl = imageUrls[0]; // Use first image as avatar
 
-          console.log(`[Form] ✅ Images uploaded successfully:`, {
+          // Use base64 data for reliable avatar storage (works regardless of blob config)
+          if (uploadResult.images && uploadResult.images.length > 0) {
+            avatarBase64 = uploadResult.images[0].base64;
+            imageUrls = uploadResult.images.map((img: { base64: string }) => img.base64);
+          } else {
+            // Fallback to URLs for backward compatibility
+            imageUrls = uploadResult.urls || [];
+            avatarBase64 = imageUrls[0];
+          }
+
+          console.log(`[Form] ✅ Images processed successfully:`, {
             count: imageUrls.length,
-            avatarUrl,
+            hasBase64Avatar: !!avatarBase64,
+            avatarPreview: avatarBase64?.substring(0, 50) + "...",
           });
         } catch (uploadError) {
           console.error("[Form] ❌ Image upload error:", uploadError);
@@ -331,7 +340,7 @@ export default function BuildYourCrushSection() {
           instagram: instagram.trim() || undefined,
           twitter: twitter.trim() || undefined,
           socialContent: socialContent.trim() || undefined,
-          avatarUrl: avatarUrl,
+          avatarUrl: avatarBase64, // Use base64 for reliable storage
           imageUrls: imageUrls,
         }),
       });

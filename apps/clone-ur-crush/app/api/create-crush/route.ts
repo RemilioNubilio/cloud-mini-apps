@@ -84,35 +84,46 @@ export async function POST(request: NextRequest) {
       .slice(0, 30) || "";
     const sanitizedSocialContent = body.socialContent?.trim().slice(0, 1000) || "";
     
-    // Validate avatar URL if provided (basic URL validation)
+    // Validate avatar URL if provided (accepts base64 data URLs or Vercel Blob URLs)
     let avatarUrl: string | undefined;
     if (body.avatarUrl && typeof body.avatarUrl === "string") {
-      try {
-        const url = new URL(body.avatarUrl);
-        // Ensure it's from a trusted domain (Vercel Blob)
-        if (url.hostname.includes("vercel-storage.com") || url.hostname.includes("blob.vercel-storage.com")) {
-          avatarUrl = body.avatarUrl;
-        } else {
-          console.warn("[Create-Crush API] Avatar URL from untrusted domain:", url.hostname);
+      // Accept base64 data URLs (most reliable for cross-server storage)
+      if (body.avatarUrl.startsWith("data:image/")) {
+        avatarUrl = body.avatarUrl;
+        console.log("[Create-Crush API] Using base64 avatar URL");
+      } else {
+        try {
+          const url = new URL(body.avatarUrl);
+          // Also accept Vercel Blob URLs
+          if (url.hostname.includes("vercel-storage.com") || url.hostname.includes("blob.vercel-storage.com")) {
+            avatarUrl = body.avatarUrl;
+          } else {
+            console.warn("[Create-Crush API] Avatar URL from untrusted domain:", url.hostname);
+          }
+        } catch (error) {
+          console.warn("[Create-Crush API] Invalid avatar URL:", body.avatarUrl?.substring(0, 50));
         }
-      } catch (error) {
-        console.warn("[Create-Crush API] Invalid avatar URL:", body.avatarUrl);
       }
     }
-    
-    // Validate image URLs if provided
+
+    // Validate image URLs if provided (accepts base64 data URLs or Vercel Blob URLs)
     const imageUrls: string[] = [];
     if (body.imageUrls && Array.isArray(body.imageUrls)) {
       for (const url of body.imageUrls) {
         if (typeof url === "string") {
-          try {
-            const parsedUrl = new URL(url);
-            if (parsedUrl.hostname.includes("vercel-storage.com") || parsedUrl.hostname.includes("blob.vercel-storage.com")) {
-              imageUrls.push(url);
+          // Accept base64 data URLs
+          if (url.startsWith("data:image/")) {
+            imageUrls.push(url);
+          } else {
+            try {
+              const parsedUrl = new URL(url);
+              if (parsedUrl.hostname.includes("vercel-storage.com") || parsedUrl.hostname.includes("blob.vercel-storage.com")) {
+                imageUrls.push(url);
+              }
+            } catch (error) {
+              // Skip invalid URLs
+              console.warn("[Create-Crush API] Skipping invalid image URL");
             }
-          } catch (error) {
-            // Skip invalid URLs
-            console.warn("[Create-Crush API] Skipping invalid image URL:", url);
           }
         }
       }

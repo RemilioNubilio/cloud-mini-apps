@@ -8,9 +8,15 @@ const VALID_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"]
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const MAX_IMAGES = 3;
 
+interface UploadedImage {
+  url: string;
+  base64: string;
+}
+
 interface UploadImageResponse {
   success: boolean;
   urls?: string[];
+  images?: UploadedImage[];
   message?: string;
   error?: string;
 }
@@ -124,12 +130,15 @@ export async function POST(request: NextRequest): Promise<NextResponse<UploadIma
 
     console.log(`[Upload Images] Uploading ${images.length} image(s)...`);
 
-    // 5. UPLOAD IMAGES (Vercel Blob or local storage)
-    const uploadPromises = images.map(async (image, index) => {
+    // 5. UPLOAD IMAGES (Vercel Blob or local storage) AND convert to base64
+    const uploadPromises = images.map(async (image, index): Promise<UploadedImage> => {
       try {
         // Convert File to Buffer
         const arrayBuffer = await image.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
+
+        // Convert to base64 data URL (always do this for reliable storage)
+        const base64 = `data:${image.type};base64,${buffer.toString("base64")}`;
 
         // Generate safe filename
         const timestamp = Date.now();
@@ -140,10 +149,12 @@ export async function POST(request: NextRequest): Promise<NextResponse<UploadIma
           .toLowerCase();
         const filename = `${timestamp}-${randomSuffix}-${sanitizedName}`;
 
+        let url = base64; // Default to base64 if storage fails
+
         if (useLocalStorage) {
           // LOCAL STORAGE: Save to public/uploads directory
           const uploadsDir = path.join(process.cwd(), "public", "uploads", "crush-avatars");
-          
+
           // Create uploads directory if it doesn't exist
           if (!existsSync(uploadsDir)) {
             await mkdir(uploadsDir, { recursive: true });
@@ -153,26 +164,29 @@ export async function POST(request: NextRequest): Promise<NextResponse<UploadIma
           await writeFile(filePath, buffer);
 
           // Return local URL (accessible via /uploads/crush-avatars/filename)
-          const localUrl = `/uploads/crush-avatars/${filename}`;
-          console.log(`[Upload Images] ✅ Saved locally ${index + 1}/${images.length}: ${localUrl}`);
-          
-          return localUrl;
+          url = `/uploads/crush-avatars/${filename}`;
+          console.log(`[Upload Images] ✅ Saved locally ${index + 1}/${images.length}: ${url}`);
         } else {
           // VERCEL BLOB: Upload to cloud storage
-          const blob = await put(`crush-avatars/${filename}`, buffer, {
-            access: "public",
-            contentType: image.type,
-            addRandomSuffix: false, // We already added timestamp + random suffix
-          });
-
-          console.log(`[Upload Images] ✅ Uploaded to Vercel Blob ${index + 1}/${images.length}: ${filename}`);
-
-          return blob.url;
+          try {
+            const blob = await put(`crush-avatars/${filename}`, buffer, {
+              access: "public",
+              contentType: image.type,
+              addRandomSuffix: false, // We already added timestamp + random suffix
+            });
+            url = blob.url;
+            console.log(`[Upload Images] ✅ Uploaded to Vercel Blob ${index + 1}/${images.length}: ${filename}`);
+          } catch (blobError) {
+            console.warn(`[Upload Images] ⚠️ Blob upload failed, using base64 fallback:`, blobError);
+            // url remains as base64
+          }
         }
+
+        return { url, base64 };
       } catch (error) {
-        console.error(`[Upload Images] ❌ Failed to upload image ${index + 1}:`, error);
+        console.error(`[Upload Images] ❌ Failed to process image ${index + 1}:`, error);
         throw new Error(
-          `Failed to upload "${image.name}": ${
+          `Failed to process "${image.name}": ${
             error instanceof Error ? error.message : "Unknown error"
           }`
         );
@@ -180,9 +194,9 @@ export async function POST(request: NextRequest): Promise<NextResponse<UploadIma
     });
 
     // Wait for all uploads to complete
-    let uploadedUrls: string[];
+    let uploadedImages: UploadedImage[];
     try {
-      uploadedUrls = await Promise.all(uploadPromises);
+      uploadedImages = await Promise.all(uploadPromises);
     } catch (error) {
       console.error("[Upload Images] ❌ Upload failed:", error);
       return NextResponse.json(
@@ -196,12 +210,13 @@ export async function POST(request: NextRequest): Promise<NextResponse<UploadIma
 
     // 6. RETURN SUCCESS RESPONSE
     const storageType = useLocalStorage ? "locally" : "to Vercel Blob";
-    console.log(`[Upload Images] ✅ Successfully uploaded ${uploadedUrls.length} image(s) ${storageType}`);
+    console.log(`[Upload Images] ✅ Successfully processed ${uploadedImages.length} image(s) ${storageType}`);
 
     return NextResponse.json({
       success: true,
-      urls: uploadedUrls,
-      message: `Successfully uploaded ${uploadedUrls.length} image(s)`,
+      urls: uploadedImages.map(img => img.url), // Backward compatibility
+      images: uploadedImages, // New: includes both url and base64
+      message: `Successfully uploaded ${uploadedImages.length} image(s)`,
     });
   } catch (error) {
     // Catch-all error handler
