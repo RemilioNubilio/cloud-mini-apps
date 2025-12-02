@@ -344,6 +344,62 @@ export default function BuildYourCrushSection() {
 
       const scrapedImages = collectScrapedImages();
 
+      if (scrapedImages.length > 0) {
+        console.log(`[Form] 🔄 Uploading ${scrapedImages.length} scraped image(s) to Vercel Blob...`);
+        setIsUploadingImages(true);
+
+        try {
+          const imagesToUpload = scrapedImages
+            .filter(img => img.url && !img.url.startsWith("data:"))
+            .map(img => ({
+              type: "url" as const,
+              data: img.url,
+            }));
+
+          if (imagesToUpload.length > 0) {
+            const uploadResponse = await fetch("/api/upload-images", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ images: imagesToUpload }),
+            });
+
+            if (uploadResponse.ok) {
+              const uploadResult = await uploadResponse.json();
+
+              if (uploadResult.images && uploadResult.images.length > 0) {
+                const uploadedUrls = uploadResult.images.map((img: { url: string }) => img.url);
+                imageUrls = [...imageUrls, ...uploadedUrls];
+
+                if (!avatarBase64 && uploadResult.images[0]) {
+                  avatarBase64 = uploadResult.images[0].base64 || uploadResult.images[0].url;
+                }
+
+                console.log(`[Form] ✅ Uploaded ${uploadedUrls.length} scraped images to Vercel Blob`);
+              }
+            } else {
+              console.warn("[Form] ⚠️ Failed to upload scraped images, using original URLs as fallback");
+              const fallbackUrls = scrapedImages.map(img => img.url).filter(Boolean);
+              imageUrls = [...imageUrls, ...fallbackUrls];
+            }
+          }
+
+          const base64Images = scrapedImages.filter(img => img.base64);
+          for (const img of base64Images) {
+            if (img.base64 && !imageBase64s.includes(img.base64)) {
+              imageBase64s.push(img.base64);
+            }
+          }
+        } catch (uploadError) {
+          console.error("[Form] ❌ Error uploading scraped images:", uploadError);
+          const fallbackUrls = scrapedImages.map(img => img.url).filter(Boolean);
+          imageUrls = [...imageUrls, ...fallbackUrls];
+        } finally {
+          setIsUploadingImages(false);
+        }
+      }
+
       if (!avatarBase64 && scrapedImages.length > 0) {
         const profilePicImage = scrapedImages.find(img => img.isProfilePic);
         if (profilePicImage) {
@@ -355,6 +411,7 @@ export default function BuildYourCrushSection() {
         hasUploadedImages: imageUrls.length > 0,
         hasScrapedImages: scrapedImages.length > 0,
         hasAvatar: !!avatarBase64,
+        imageUrlsAreBlobUrls: imageUrls.every(url => url.includes("blob.vercel-storage.com")),
       });
 
       const response = await fetch("/api/create-crush", {
