@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Heart, MessageCircle, Sparkles, Zap } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { Sparkles, Heart, MessageCircle, Zap } from "lucide-react";
+import { useEffect, useState } from "react";
 
 export default function ConnectingPage() {
   const searchParams = useSearchParams();

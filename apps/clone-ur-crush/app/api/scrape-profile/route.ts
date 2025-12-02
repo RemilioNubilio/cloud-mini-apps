@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+
+import { profileCache } from "@/lib/cache";
+import { instagramRateLimiter, twitterRateLimiter } from "@/lib/rate-limiter";
 import { scrapeInstagramProfile } from "@/lib/scrapers/instagram-scraper";
 import { scrapeTwitterProfile } from "@/lib/scrapers/twitter-scraper";
-import { instagramRateLimiter, twitterRateLimiter } from "@/lib/rate-limiter";
-import { profileCache } from "@/lib/cache";
 
 type Platform = "instagram" | "twitter";
 

@@ -6,7 +6,7 @@
  * Uses browser automation to access publicly available data
  */
 
-import { chromium, Browser, Page } from 'playwright';
+import { Browser, chromium, Page } from 'playwright';
 
 export interface TwitterProfile {
   username: string;
