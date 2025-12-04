@@ -43,21 +43,31 @@ export class TwitterScraper {
 
   private async initBrowser(): Promise<void> {
     if (!this.browser) {
+      const browserlessToken = process.env.BROWSERLESS_TOKEN;
       const browserlessUrl = process.env.BROWSERLESS_WS_URL;
 
-      try {
-        if (browserlessUrl) {
+      if (browserlessToken || browserlessUrl) {
+        try {
+          const wsUrl = browserlessToken
+            ? `wss://chrome.browserless.io/playwright?token=${browserlessToken}`
+            : browserlessUrl;
+
           console.log('[Twitter Scraper] Connecting to remote browser service...');
-          this.browser = await chromium.connect(browserlessUrl, {
-            timeout: 30000,
+          this.browser = await chromium.connect(wsUrl!, {
+            timeout: 60000,
           });
           console.log('[Twitter Scraper] ✅ Connected to remote browser');
-        } else {
-          console.log('[Twitter Scraper] Launching local Chromium...');
-          this.browser = await chromium.launch({
-            headless: this.options.headless,
-          });
+          return;
+        } catch (error) {
+          console.warn('[Twitter Scraper] Remote browser connection failed, falling back to local:', error);
         }
+      }
+
+      try {
+        console.log('[Twitter Scraper] Launching local Chromium...');
+        this.browser = await chromium.launch({
+          headless: this.options.headless,
+        });
       } catch (error) {
         console.error('[Twitter Scraper] Browser initialization failed:', error);
         throw new Error(
