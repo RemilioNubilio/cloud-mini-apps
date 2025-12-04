@@ -46,9 +46,12 @@ export interface InstagramScraperOptions {
   convertImagesToBase64?: boolean;
 }
 
+// Instagram API response types - dynamic structures from external API
 interface InterceptedProfileData {
-  user?: any;
-  posts?: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  user?: Record<string, any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  posts?: Record<string, any>;
 }
 
 export class InstagramScraper {
@@ -145,7 +148,7 @@ export class InstagramScraper {
             if (json.data?.user?.edge_owner_to_timeline_media) {
               profileData.posts = json.data.user.edge_owner_to_timeline_media;
             }
-          } catch (error) {
+          } catch {
             // Ignore parsing errors
           }
         }
@@ -314,12 +317,12 @@ export class InstagramScraper {
     });
 
     const posts = data.posts?.edges ||
-                 user.edge_owner_to_timeline_media?.edges ||
+                 user?.edge_owner_to_timeline_media?.edges ||
                  [];
 
     console.log('[Instagram Scraper] 📝 Posts info:', {
       postsFromData: data.posts?.edges?.length || 0,
-      postsFromUser: user.edge_owner_to_timeline_media?.edges?.length || 0,
+      postsFromUser: user?.edge_owner_to_timeline_media?.edges?.length || 0,
       totalPosts: posts.length,
     });
 
@@ -358,7 +361,7 @@ export class InstagramScraper {
 
       if (node.thumbnail_resources && Array.isArray(node.thumbnail_resources)) {
         const bestThumbnail = node.thumbnail_resources
-          .sort((a: any, b: any) => (b.config_width || 0) - (a.config_width || 0))[0];
+          .sort((a: { config_width?: number }, b: { config_width?: number }) => (b.config_width || 0) - (a.config_width || 0))[0];
 
         if (bestThumbnail && !images.find(img => img.url === bestThumbnail.src)) {
           images.push({
@@ -395,9 +398,9 @@ export class InstagramScraper {
       allPostImages.push(...images);
     }
 
-    let profilePicUrl = user.hd_profile_pic_url_info?.url ||
-                       user.profile_pic_url_hd ||
-                       user.profile_pic_url ||
+    let profilePicUrl = user?.hd_profile_pic_url_info?.url ||
+                       user?.profile_pic_url_hd ||
+                       user?.profile_pic_url ||
                        '';
 
     if (!profilePicUrl) {
@@ -415,34 +418,34 @@ export class InstagramScraper {
           }
           return '';
         });
-      } catch (error) {
+      } catch {
         console.warn('[Instagram Scraper] Failed to get profile pic from DOM');
       }
     }
 
-    const followersCount = user.follower_count ||
-                          user.edge_followed_by?.count ||
+    const followersCount = user?.follower_count ||
+                          user?.edge_followed_by?.count ||
                           0;
 
-    const followingCount = user.following_count ||
-                          user.edge_follow?.count ||
+    const followingCount = user?.following_count ||
+                          user?.edge_follow?.count ||
                           0;
 
-    const postsCount = user.media_count ||
-                      user.edge_owner_to_timeline_media?.count ||
+    const postsCount = user?.media_count ||
+                      user?.edge_owner_to_timeline_media?.count ||
                       0;
 
     const parsedProfile: InstagramProfile = {
-      username: user.username || username,
-      fullName: user.full_name || user.name || '',
-      bio: user.biography || user.bio || '',
+      username: user?.username || username,
+      fullName: user?.full_name || user?.name || '',
+      bio: user?.biography || user?.bio || '',
       followersCount,
       followingCount,
       postsCount,
       recentPosts,
       profilePicUrl,
-      isPrivate: user.is_private || false,
-      isVerified: user.is_verified || false,
+      isPrivate: user?.is_private || false,
+      isVerified: user?.is_verified || false,
       postImages: allPostImages.slice(0, 10),
     };
 
@@ -490,7 +493,12 @@ export class InstagramScraper {
     }
 
     const scrapedData = await page.evaluate(() => {
-      const result: any = {
+      const result: {
+        bio: string;
+        fullName: string;
+        profilePicUrl: string;
+        isPrivate: boolean;
+      } = {
         bio: '',
         fullName: '',
         profilePicUrl: '',

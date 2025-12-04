@@ -102,7 +102,8 @@ export class TwitterScraper {
       console.log(`[Twitter Scraper] Navigating to: ${url}`);
 
       // Intercept API responses
-      const profileData: any = {};
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const profileData: Record<string, any> = {};
       let interceptedData = false;
 
       page.on('response', async (response) => {
@@ -190,7 +191,8 @@ export class TwitterScraper {
   /**
    * Parse data from intercepted API responses
    */
-  private parseInterceptedData(data: any, username: string): TwitterProfile {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private parseInterceptedData(data: Record<string, any>, username: string): TwitterProfile {
     // Handle nested result structure
     const userResult = data.user?.result || data.user;
     const user = userResult?.legacy || userResult;

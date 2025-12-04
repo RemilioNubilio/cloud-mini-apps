@@ -2,9 +2,9 @@
 
 import { Heart, MessageCircle, Sparkles, Zap } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 
-export default function ConnectingPage() {
+function ConnectingContent() {
   const searchParams = useSearchParams();
   const [dots, setDots] = useState("");
   const [currentStep, setCurrentStep] = useState(0);
@@ -99,7 +99,9 @@ export default function ConnectingPage() {
 
     if (characterId && sessionId) {
       redirectTimeout = setTimeout(() => {
-        const elizaCloudUrl = process.env.NEXT_PUBLIC_CLONEURCRUSH_ELIZA_URL || "http://localhost:3000";
+        const elizaCloudUrl =
+          process.env.NEXT_PUBLIC_CLONEURCRUSH_ELIZA_URL ||
+          "http://localhost:3000";
 
         // Build redirect URL - theming is now dynamic based on source param
         const redirectUrl = new URL(`${elizaCloudUrl}/chat/${characterId}`);
@@ -113,7 +115,9 @@ export default function ConnectingPage() {
         window.location.href = redirectUrl.toString();
       }, 6000); // 6 seconds for animation
     } else {
-      console.warn("[Connecting] Missing characterId or sessionId, redirect cancelled");
+      console.warn(
+        "[Connecting] Missing characterId or sessionId, redirect cancelled",
+      );
     }
 
     return () => {
@@ -257,7 +261,7 @@ export default function ConnectingPage() {
             <div className="space-y-2 text-center">
               <p className="text-sm text-white/50">Almost ready to chat...</p>
               <p className="text-xs text-white/30">
-                You'll be redirected to ElizaOS Cloud in a moment
+                You&apos;ll be redirected to ElizaOS Cloud in a moment
               </p>
             </div>
           </div>
@@ -287,5 +291,19 @@ export default function ConnectingPage() {
         }
       `}</style>
     </div>
+  );
+}
+
+export default function ConnectingPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-[#050109]">
+          <div className="size-8 animate-spin rounded-full border-2 border-pink-500/30 border-t-pink-500" />
+        </div>
+      }
+    >
+      <ConnectingContent />
+    </Suspense>
   );
 }

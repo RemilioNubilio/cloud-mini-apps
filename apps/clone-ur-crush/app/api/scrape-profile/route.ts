@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { profileCache } from "@/lib/cache";
 import { instagramRateLimiter, twitterRateLimiter } from "@/lib/rate-limiter";
-import { scrapeInstagramProfile } from "@/lib/scrapers/instagram-scraper";
-import { scrapeTwitterProfile } from "@/lib/scrapers/twitter-scraper";
+import { InstagramProfile, scrapeInstagramProfile } from "@/lib/scrapers/instagram-scraper";
+import { scrapeTwitterProfile, TwitterProfile } from "@/lib/scrapers/twitter-scraper";
 
 type Platform = "instagram" | "twitter";
 
@@ -12,9 +12,11 @@ interface ScrapeRequest {
   username: string;
 }
 
+type ProfileData = InstagramProfile | TwitterProfile;
+
 interface ScrapeResponse {
   success: boolean;
-  data?: any;
+  data?: ProfileData;
   error?: string;
   cached?: boolean;
 }
@@ -41,7 +43,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<ScrapeRes
     let body: ScrapeRequest;
     try {
       body = await request.json();
-    } catch (error) {
+    } catch {
       return NextResponse.json(
         {
           success: false,
@@ -88,7 +90,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<ScrapeRes
 
     // 2. CHECK CACHE
     const cacheKey = `${platform}:${cleanUsername}`.toLowerCase();
-    const cachedData = profileCache.get(cacheKey);
+    const cachedData = profileCache.get(cacheKey) as ProfileData | null;
 
     if (cachedData) {
       console.log(`[Scrape Profile] ✅ Cache hit for ${cacheKey}`);
@@ -123,16 +125,16 @@ export async function POST(request: NextRequest): Promise<NextResponse<ScrapeRes
     // 4. SCRAPE PROFILE
     console.log(`[Scrape Profile] 🔍 Scraping ${platform} profile: @${cleanUsername}`);
 
-    let profileData: any;
-
     try {
+      let profileData: ProfileData;
+      
       if (platform === "instagram") {
         profileData = await scrapeInstagramProfile(cleanUsername, {
           headless: true,
           timeout: 30000,
           maxPosts: 10,
         });
-      } else if (platform === "twitter") {
+      } else {
         profileData = await scrapeTwitterProfile(cleanUsername, {
           headless: true,
           timeout: 30000,
@@ -185,7 +187,8 @@ export async function POST(request: NextRequest): Promise<NextResponse<ScrapeRes
 /**
  * OPTIONS handler for CORS
  */
-export async function OPTIONS(request: NextRequest): Promise<NextResponse> {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function OPTIONS(_request: NextRequest): Promise<NextResponse> {
   return new NextResponse(null, {
     status: 204,
     headers: {
