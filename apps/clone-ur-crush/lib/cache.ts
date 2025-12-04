@@ -79,8 +79,8 @@ class SimpleCache<T> {
   }
 }
 
-// Export singleton instances for different data types
-export const profileCache = new SimpleCache<any>(24 * 60 * 60 * 1000); // 24 hours
+// Profile data type for cache - using unknown for flexibility with scraped data
+export const profileCache = new SimpleCache<unknown>(24 * 60 * 60 * 1000); // 24 hours
 
 export default SimpleCache;
 
