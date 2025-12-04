@@ -41,14 +41,29 @@ export class TwitterScraper {
     };
   }
 
-  /**
-   * Initialize browser instance
-   */
   private async initBrowser(): Promise<void> {
     if (!this.browser) {
-      this.browser = await chromium.launch({
-        headless: this.options.headless,
-      });
+      const browserlessUrl = process.env.BROWSERLESS_WS_URL;
+
+      try {
+        if (browserlessUrl) {
+          console.log('[Twitter Scraper] Connecting to remote browser service...');
+          this.browser = await chromium.connect(browserlessUrl, {
+            timeout: 30000,
+          });
+          console.log('[Twitter Scraper] ✅ Connected to remote browser');
+        } else {
+          console.log('[Twitter Scraper] Launching local Chromium...');
+          this.browser = await chromium.launch({
+            headless: this.options.headless,
+          });
+        }
+      } catch (error) {
+        console.error('[Twitter Scraper] Browser initialization failed:', error);
+        throw new Error(
+          `Failed to initialize browser: ${error instanceof Error ? error.message : 'Unknown error'}`
+        );
+      }
     }
   }
 
