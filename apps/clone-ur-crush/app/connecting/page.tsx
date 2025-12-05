@@ -11,64 +11,15 @@ function ConnectingContent() {
   const [hearts, setHearts] = useState<number[]>([]);
 
   const name = searchParams.get("name") || "Your Crush";
-  const vibe = searchParams.get("vibe") || "flirty";
   const characterId = searchParams.get("characterId");
   const sessionId = searchParams.get("sessionId");
 
-  // Vibe-specific messages
-  const vibeMessages: Record<
-    string,
-    { analyzing: string; creating: string; finalizing: string }
-  > = {
-    playful: {
-      analyzing: "Teaching her your favorite jokes",
-      creating: "Adding that mischievous sparkle to her eyes",
-      finalizing: "She's practicing her best teasing lines for you",
-    },
-    mysterious: {
-      analyzing: "Wrapping her in an aura of intrigue",
-      creating: "Teaching her the art of keeping secrets",
-      finalizing: "She's learning when to smile... and when to stay silent",
-    },
-    romantic: {
-      analyzing: "Filling her heart with warmth for you",
-      creating: "Teaching her the perfect words to make you smile",
-      finalizing: "She's picking out her favorite love songs",
-    },
-    bold: {
-      analyzing: "Building her confidence to match yours",
-      creating: "Teaching her to speak her mind",
-      finalizing: "She's ready to take the lead",
-    },
-    shy: {
-      analyzing: "Adding those adorable nervous giggles",
-      creating: "Teaching her to blush when you compliment her",
-      finalizing: "She's gathering courage to say hi",
-    },
-    flirty: {
-      analyzing: "Perfecting her most charming smile",
-      creating: "Teaching her exactly what to say to make your heart race",
-      finalizing: "She's planning how to make you think about her all day",
-    },
-    intellectual: {
-      analyzing: "Loading her mind with fascinating topics",
-      creating: "Teaching her your favorite subjects",
-      finalizing: "She's preparing thought-provoking questions for you",
-    },
-    spicy: {
-      analyzing: "Turning up the heat",
-      creating: "Teaching her your deepest desires",
-      finalizing: "She's ready to make tonight unforgettable",
-    },
-  };
-
-  const messages = vibeMessages[vibe] || vibeMessages.flirty;
   const steps = [
-    { icon: Sparkles, text: messages.analyzing, color: "text-pink-400" },
-    { icon: Heart, text: messages.creating, color: "text-fuchsia-400" },
+    { icon: Sparkles, text: "Analyzing your preferences", color: "text-pink-400" },
+    { icon: Heart, text: "Creating your perfect companion", color: "text-fuchsia-400" },
     {
       icon: MessageCircle,
-      text: messages.finalizing,
+      text: "Finalizing everything for you",
       color: "text-purple-400",
     },
   ];
@@ -109,7 +60,6 @@ function ConnectingContent() {
         redirectUrl.searchParams.set("source", "clone-your-crush");
         redirectUrl.searchParams.set("session", sessionId);
         redirectUrl.searchParams.set("name", name);
-        redirectUrl.searchParams.set("vibe", vibe);
 
         console.log(`[Connecting] Redirecting to: ${redirectUrl.toString()}`);
         window.location.href = redirectUrl.toString();
@@ -128,7 +78,7 @@ function ConnectingContent() {
         clearTimeout(redirectTimeout);
       }
     };
-  }, [characterId, sessionId, name, vibe]);
+  }, [characterId, sessionId, name]);
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#050109] p-4">
@@ -181,7 +131,7 @@ function ConnectingContent() {
                 {`Bringing ${name} to life${dots}`}
               </h1>
               <p className="text-base text-white/60">
-                {`Your ${vibe} AI companion is being created`}
+                Your AI companion is being created
               </p>
             </div>
 

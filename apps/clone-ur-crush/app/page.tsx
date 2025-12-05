@@ -9,32 +9,28 @@
 // import SocialProof from "../components/cloneurcrush/social-proof";
 
 import BuildYourCrushSection from "../components/cloneurcrush/build-your-crush-section";
-import CloneFooter from "../components/cloneurcrush/footer";
 import CloneHero from "../components/cloneurcrush/hero";
-import CloneNavbar from "../components/cloneurcrush/navbar";
 import { LayoutLines } from "../components/ui/layout-lines";
+import { Section } from "../components/ui/section";
 
 export default function Home() {
   return (
     <main className="min-h-screen w-full bg-[#050109] text-white">
       <LayoutLines />
-      <CloneNavbar />
-      <CloneHero />
+      
+      {/* Combined Hero + Build Section */}
+      <Section 
+        id="build-your-crush"
+        className="relative overflow-hidden pt-20 pb-20 sm:pt-24 sm:pb-24 lg:pt-28 lg:pb-28 xl:pt-32 xl:pb-32"
+      >
+        <div className="mx-auto flex max-w-7xl flex-col gap-10 px-4 sm:gap-12 md:gap-14 lg:flex-row lg:items-start lg:gap-8 xl:gap-12 2xl:gap-16">
+          {/* Left: Hero Content */}
+          <CloneHero />
 
-      {/* NEW: Character creation form section */}
-      <BuildYourCrushSection />
-
-      {/* COMMENTED OUT - Below the fold sections (founder feedback: "everything below the fold should be deleted") */}
-      {/* <EmotionalHook /> */}
-      {/* <CustomerReviews /> */}
-      {/* <DemoFlow /> */}
-      {/* <SocialProof /> */}
-      {/* <OfferStack /> */}
-      {/* <ComparisonSection /> */}
-      {/* <FinalCTA /> */}
-      {/* <CloneFAQ /> */}
-
-      <CloneFooter />
+          {/* Right: Build Your Crush Form */}
+          <BuildYourCrushSection />
+        </div>
+      </Section>
     </main>
   );
 }

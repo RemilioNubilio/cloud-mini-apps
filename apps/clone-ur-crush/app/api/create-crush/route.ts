@@ -1,18 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 
-type Vibe =
-  | "playful"
-  | "mysterious"
-  | "romantic"
-  | "bold"
-  | "shy"
-  | "flirty"
-  | "intellectual"
-  | "spicy";
-
 interface CreateCrushRequest {
   name: string;
-  vibe: Vibe;
   backstory?: string;
   personality?: string;
   avatarUrl?: string;
@@ -29,33 +18,6 @@ interface ElizaCloudResponse {
   message: string;
   error?: string;
 }
-
-const VALID_VIBES: Vibe[] = [
-  "playful",
-  "mysterious",
-  "romantic",
-  "bold",
-  "shy",
-  "flirty",
-  "intellectual",
-  "spicy",
-];
-
-const VIBE_PROMPTS: Record<Vibe, string> = {
-  playful:
-    "playful, teasing, loves jokes and lighthearted banter, mischievous energy",
-  mysterious:
-    "mysterious, keeps you guessing, intriguing, reveals little about herself",
-  romantic:
-    "romantic, sweet, affectionate, genuinely caring, uses loving language",
-  bold: "confident, direct, takes charge, assertive, knows what she wants",
-  shy: "shy, innocent, gets nervous around you, blushes easily, cute and timid",
-  flirty:
-    "flirty, suggestive, charming, knows how to tease, playfully seductive",
-  intellectual:
-    "intellectual, loves deep conversations, witty, thought-provoking",
-  spicy: "explicit, passionate, no boundaries, sensual, sexually direct",
-};
 
 function isValidImageUrl(url: string): boolean {
   if (!url || typeof url !== "string") return false;
@@ -143,15 +105,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
     }
 
-    if (!body.vibe || !VALID_VIBES.includes(body.vibe)) {
-      return NextResponse.json(
-        {
-          error: `Valid vibe is required. Choose from: ${VALID_VIBES.join(", ")}`,
-        },
-        { status: 400 },
-      );
-    }
-
     const sanitizedName = body.name.trim().slice(0, 50);
     const sanitizedBackstory = body.backstory?.trim().slice(0, 500) || "";
     const sanitizedPersonality = body.personality?.trim().slice(0, 1000) || "";
@@ -166,10 +119,7 @@ export async function POST(request: NextRequest) {
       imageBase64Count: imageBase64s.length,
     });
 
-    const bioLines: string[] = [
-      `A ${body.vibe} personality.`,
-      VIBE_PROMPTS[body.vibe],
-    ];
+    const bioLines: string[] = [];
 
     if (sanitizedBackstory) {
       bioLines.push(`Backstory: ${sanitizedBackstory}`);
@@ -188,7 +138,6 @@ export async function POST(request: NextRequest) {
       name: sanitizedName,
       bio: bioLines,
       lore: [
-        `${sanitizedName} has a ${body.vibe} personality.`,
         sanitizedBackstory || "You have a special connection with the user.",
         ...(sanitizedPersonality
           ? [`Personality context: ${sanitizedPersonality}`]
@@ -196,7 +145,6 @@ export async function POST(request: NextRequest) {
       ],
       style: {
         all: [
-          `Embody a ${body.vibe} personality`,
           "Keep responses concise and natural",
           "Be conversational, not robotic",
         ],
@@ -224,7 +172,7 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(
-      `[Create-Crush API] Creating character "${sanitizedName}" with vibe "${body.vibe}"`,
+      `[Create-Crush API] Creating character "${sanitizedName}"`,
       {
         hasAvatar: !!finalAvatarUrl,
         avatarType: avatarBase64 ? "base64" : avatarUrl ? "url" : "none",
@@ -251,7 +199,6 @@ export async function POST(request: NextRequest) {
           affiliateId: "clone-your-crush",
           metadata: {
             source: "landing-page",
-            vibe: body.vibe,
             backstory: sanitizedBackstory,
             personality: sanitizedPersonality,
             imageUrls: imageUrls,

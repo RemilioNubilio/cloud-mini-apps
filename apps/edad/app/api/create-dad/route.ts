@@ -1,21 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 
-/**
- * Dad personality vibes
- */
-type DadVibe =
-  | "supportive"
-  | "wise"
-  | "funny"
-  | "strict"
-  | "chill"
-  | "mentor"
-  | "storyteller"
-  | "handy";
-
 interface CreateDadRequest {
   nickname: string;
-  vibe: DadVibe;
   backstory?: string;
   aboutYou?: string;
   avatarUrl?: string;
@@ -31,36 +17,6 @@ interface ElizaCloudResponse {
   error?: string;
 }
 
-const VALID_VIBES: DadVibe[] = [
-  "supportive",
-  "wise",
-  "funny",
-  "strict",
-  "chill",
-  "mentor",
-  "storyteller",
-  "handy",
-];
-
-// Vibe-specific descriptions for AI character generation
-const VIBE_PROMPTS: Record<DadVibe, string> = {
-  supportive:
-    "supportive, encouraging, always celebrates their wins, believes in them unconditionally, proud of everything they do",
-  wise: "wise, thoughtful, shares life lessons, gives philosophical advice, helps them see the bigger picture",
-  funny:
-    "funny, loves dad jokes, playful banter, keeps things lighthearted, always ready with a pun",
-  strict:
-    "strict but fair, holds them to high standards, tough love, keeps them accountable, pushes them to be better",
-  chill:
-    "laid back, accepting, no judgment, easy going, lets them be themselves, goes with the flow",
-  mentor:
-    "mentor-like, career-focused, goal-oriented, gives practical advice, helps them succeed professionally",
-  storyteller:
-    "nostalgic, shares stories from the past, teaches through experiences, keeps family traditions alive",
-  handy:
-    "practical, problem-solver, DIY tips, resourceful, teaches them useful skills, fix-it attitude",
-};
-
 export async function POST(request: NextRequest) {
   try {
     const body: CreateDadRequest = await request.json();
@@ -73,15 +29,6 @@ export async function POST(request: NextRequest) {
     ) {
       return NextResponse.json(
         { error: "Nickname is required" },
-        { status: 400 }
-      );
-    }
-
-    if (!body.vibe || !VALID_VIBES.includes(body.vibe)) {
-      return NextResponse.json(
-        {
-          error: `Valid vibe is required. Choose from: ${VALID_VIBES.join(", ")}`,
-        },
         { status: 400 }
       );
     }
@@ -144,8 +91,6 @@ export async function POST(request: NextRequest) {
 
     // 3. BUILD CHARACTER BIO
     const bioLines: string[] = [
-      `A ${body.vibe} father figure.`,
-      VIBE_PROMPTS[body.vibe],
       `You call the user "${sanitizedNickname}" with warmth and care.`,
     ];
 
@@ -165,7 +110,7 @@ export async function POST(request: NextRequest) {
       name: "Dad",
       bio: bioLines,
       lore: [
-        `You are a caring father figure with a ${body.vibe} personality.`,
+        `You are a caring father figure.`,
         `You address the user as "${sanitizedNickname}" with genuine warmth.`,
         sanitizedBackstory ||
           "You have a special bond with the user and genuinely care about their wellbeing.",
@@ -177,7 +122,6 @@ export async function POST(request: NextRequest) {
       ],
       style: {
         all: [
-          `Embody a ${body.vibe} father figure personality`,
           "Keep responses warm, supportive, and natural",
           "Use fatherly language - 'I'm proud of you', 'That's my kid', 'Let me tell you something'",
           "Be genuinely caring without being preachy",
@@ -206,7 +150,7 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(
-      `[Create-Dad API] Creating dad for "${sanitizedNickname}" with vibe "${body.vibe}"`,
+      `[Create-Dad API] Creating dad for "${sanitizedNickname}"`,
       {
         hasAvatar: !!avatarUrl,
         hasImages: imageUrls.length > 0,
@@ -227,7 +171,6 @@ export async function POST(request: NextRequest) {
           affiliateId: "e-dad",
           metadata: {
             source: "landing-page",
-            vibe: body.vibe,
             nickname: sanitizedNickname,
             backstory: sanitizedBackstory,
             aboutYou: sanitizedAboutYou,

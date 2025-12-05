@@ -1,5 +1,5 @@
 export const siteConfig = {
-  name: "CloneUrCrush - Your AI Girlfriend",
+  name: "Clone Ur Crush",
   url: "https://cloneurcrush.com",
   getStartedUrl: "https://cloneurcrush.com",
   ogImage: "/og.jpg",

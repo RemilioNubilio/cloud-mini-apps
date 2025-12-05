@@ -40,64 +40,15 @@ function ConnectingContent() {
   const [hearts, setHearts] = useState<number[]>([]);
 
   const nickname = searchParams.get("nickname") || "Kiddo";
-  const vibe = searchParams.get("vibe") || "supportive";
   const characterId = searchParams.get("characterId");
   const sessionId = searchParams.get("sessionId");
 
-  // Vibe-specific messages
-  const vibeMessages: Record<
-    string,
-    { analyzing: string; creating: string; finalizing: string }
-  > = {
-    supportive: {
-      analyzing: "Loading unconditional support protocols",
-      creating: "Teaching him to say 'I'm proud of you'",
-      finalizing: "He's practicing his encouraging words for you",
-    },
-    wise: {
-      analyzing: "Loading decades of life wisdom",
-      creating: "Teaching him your favorite philosophical topics",
-      finalizing: "He's preparing thoughtful advice just for you",
-    },
-    funny: {
-      analyzing: "Loading the ultimate dad joke database",
-      creating: "Teaching him the timing of a perfect pun",
-      finalizing: "He's warming up his best groan-worthy jokes",
-    },
-    strict: {
-      analyzing: "Calibrating tough love parameters",
-      creating: "Teaching him to hold you accountable",
-      finalizing: "He's ready to push you to be your best",
-    },
-    chill: {
-      analyzing: "Setting relaxation levels to maximum",
-      creating: "Teaching him the art of going with the flow",
-      finalizing: "He's ready to hang out and chat",
-    },
-    mentor: {
-      analyzing: "Loading career guidance modules",
-      creating: "Teaching him your industry and goals",
-      finalizing: "He's preparing actionable advice for you",
-    },
-    storyteller: {
-      analyzing: "Loading a lifetime of stories",
-      creating: "Teaching him the lessons of the past",
-      finalizing: "He's got a great story to share with you",
-    },
-    handy: {
-      analyzing: "Loading practical problem-solving skills",
-      creating: "Teaching him DIY tips and life hacks",
-      finalizing: "He's ready to help you fix anything",
-    },
-  };
-
-  const messages = vibeMessages[vibe] || vibeMessages.supportive;
   const steps = [
-    { icon: Sparkles, text: messages.analyzing, color: "text-amber-400" },
-    { icon: Heart, text: messages.creating, color: "text-orange-400" },
+    { icon: Sparkles, text: "Loading unconditional support protocols", color: "text-amber-400" },
+    { icon: Heart, text: "Teaching him to say 'I'm proud of you'", color: "text-orange-400" },
     {
       icon: MessageCircle,
-      text: messages.finalizing,
+      text: "He's practicing his encouraging words for you",
       color: "text-yellow-400",
     },
   ];
@@ -137,7 +88,6 @@ function ConnectingContent() {
         redirectUrl.searchParams.set("source", "e-dad");
         redirectUrl.searchParams.set("session", sessionId);
         redirectUrl.searchParams.set("name", nickname);
-        redirectUrl.searchParams.set("vibe", vibe);
 
         console.log(`[Connecting] Redirecting to: ${redirectUrl.toString()}`);
         window.location.href = redirectUrl.toString();
@@ -156,7 +106,7 @@ function ConnectingContent() {
         clearTimeout(redirectTimeout);
       }
     };
-  }, [characterId, sessionId, nickname, vibe]);
+  }, [characterId, sessionId, nickname]);
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#0c0a09] p-4">
@@ -209,7 +159,7 @@ function ConnectingContent() {
                 {`Getting Dad ready${dots}`}
               </h1>
               <p className="text-base text-white/60">
-                {`Your ${vibe} AI father is being created`}
+                Your AI father is being created
               </p>
             </div>
 

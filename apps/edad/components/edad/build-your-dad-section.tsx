@@ -5,51 +5,10 @@ import { useRouter } from "next/navigation";
 import { Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-/**
- * Dad personality vibes - what kind of father figure do you want?
- */
-export type DadVibe =
-  | "supportive"
-  | "wise"
-  | "funny"
-  | "strict"
-  | "chill"
-  | "mentor"
-  | "storyteller"
-  | "handy";
-
-/**
- * Descriptions for each dad vibe type
- */
-const vibeDescriptions: Record<DadVibe, string> = {
-  supportive: "Always in your corner, celebrates your wins, encouraging",
-  wise: "Life advice, deep wisdom, philosophical conversations",
-  funny: "Dad jokes on demand, playful banter, lighthearted",
-  strict: "Tough love, keeps you accountable, high standards",
-  chill: "Laid back, no judgment, easy going, accepting",
-  mentor: "Career guidance, goal-oriented coaching, practical advice",
-  storyteller: "Shares life experiences, lessons from the past, nostalgic",
-  handy: "Practical tips, DIY advice, problem solver, resourceful",
-};
-
-/**
- * Emoji icons for each vibe
- */
-const vibeEmojis: Record<DadVibe, string> = {
-  supportive: "🤗",
-  wise: "🧙",
-  funny: "😄",
-  strict: "📏",
-  chill: "😎",
-  mentor: "🎯",
-  storyteller: "📖",
-  handy: "🔧",
-};
 
 export default function BuildYourDadSection() {
   const router = useRouter();
   const [nickname, setNickname] = useState("");
-  const [vibe, setVibe] = useState<DadVibe>("supportive");
   const [backstory, setBackstory] = useState("");
   const [aboutYou, setAboutYou] = useState("");
   const [photos, setPhotos] = useState<File[]>([]);
@@ -127,7 +86,7 @@ export default function BuildYourDadSection() {
       }
 
       // STEP 2: Create character with image URLs
-      console.log(`[Form] Creating dad "${nickname}" with vibe "${vibe}"...`);
+      console.log(`[Form] Creating dad "${nickname}"...`);
 
       const response = await fetch("/api/create-dad", {
         method: "POST",
@@ -136,7 +95,6 @@ export default function BuildYourDadSection() {
         },
         body: JSON.stringify({
           nickname: nickname.trim(),
-          vibe,
           backstory: backstory.trim() || undefined,
           aboutYou: aboutYou.trim() || undefined,
           avatarUrl: avatarUrl,
@@ -163,7 +121,6 @@ export default function BuildYourDadSection() {
         characterId: result.characterId,
         sessionId: result.sessionId,
         nickname: nickname.trim(),
-        vibe,
       });
 
       router.push(`/connecting?${params.toString()}`);
@@ -225,41 +182,6 @@ export default function BuildYourDadSection() {
                 <p className="text-xs text-white/40">
                   This is how your AI dad will address you.
                 </p>
-              </div>
-
-              {/* Dad Vibe Pills */}
-              <div className="space-y-3">
-                <p className="block text-sm font-medium text-white/90">
-                  What kind of dad? <span className="text-amber-500">*</span>
-                </p>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  {(Object.keys(vibeDescriptions) as DadVibe[]).map((v) => (
-                    <button
-                      key={v}
-                      type="button"
-                      onClick={() => setVibe(v)}
-                      className={`group relative rounded-lg px-4 py-3 text-sm font-medium transition-all ${
-                        vibe === v
-                          ? "bg-gradient-to-b from-amber-500 to-amber-600 text-white shadow-md"
-                          : "border border-white/10 bg-white/5 text-white/70 hover:border-white/20 hover:bg-white/10"
-                      }`}
-                      title={vibeDescriptions[v]}
-                    >
-                      <span className="relative z-10 flex items-center justify-center gap-1.5">
-                        <span>{vibeEmojis[v]}</span>
-                        <span>{v.charAt(0).toUpperCase() + v.slice(1)}</span>
-                      </span>
-                      {/* Tooltip on hover for inactive vibes */}
-                      {vibe !== v && (
-                        <span className="pointer-events-none absolute top-full left-1/2 z-20 mt-2 hidden -translate-x-1/2 rounded-lg border border-white/10 bg-black/90 px-3 py-1.5 text-xs whitespace-nowrap text-white/90 backdrop-blur-sm group-hover:block">
-                          {vibeDescriptions[v]}
-                        </span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-                {/* Show description of selected vibe */}
-                <p className="text-xs text-white/50">{vibeDescriptions[vibe]}</p>
               </div>
 
               {/* About You Section */}

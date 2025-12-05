@@ -8,7 +8,7 @@ function LayoutLines({ className, ...props }: React.ComponentProps<"section">) {
       className={cn("pointer-events-none fixed inset-0 top-0", className)}
       {...props}
     >
-      <div className="max-w-container line-y line-dashed mx-auto flex h-full flex-col"></div>
+      <div className="max-w-container mx-auto flex h-full flex-col"></div>
     </section>
   );
 }

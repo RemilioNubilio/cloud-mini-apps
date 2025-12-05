@@ -61,12 +61,6 @@ export default function EdadHero() {
             >
               Meet Your AI Dad Now
             </Button>
-            <a
-              href="#demo"
-              className="text-base font-medium text-white/60 underline-offset-4 transition-colors hover:text-white hover:underline"
-            >
-              See how it works →
-            </a>
           </div>
         </div>
 

@@ -6,37 +6,16 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 
-type Vibe =
-  | "playful"
-  | "mysterious"
-  | "romantic"
-  | "bold"
-  | "shy"
-  | "flirty"
-  | "intellectual"
-  | "spicy";
 
 export default function BuildYourCrushSection() {
   const router = useRouter();
   const [name, setName] = useState("");
-  const [vibe, setVibe] = useState<Vibe>("flirty");
   const [backstory, setBackstory] = useState("");
   const [personality, setPersonality] = useState("");
   const [photos, setPhotos] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploadingImages, setIsUploadingImages] = useState(false);
   const [error, setError] = useState("");
-
-  const vibeDescriptions: Record<Vibe, string> = {
-    playful: "Fun, teasing, lighthearted banter",
-    mysterious: "Keeps you guessing, intriguing, hard to read",
-    romantic: "Sweet, affectionate, genuinely caring",
-    bold: "Confident, direct, takes charge",
-    shy: "Innocent, nervous around you, cute energy",
-    flirty: "Suggestive, charming, knows what they want",
-    intellectual: "Deep conversations, witty, thought-provoking",
-    spicy: "Explicit, passionate, no boundaries",
-  };
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -116,7 +95,7 @@ export default function BuildYourCrushSection() {
         }
       }
 
-      console.log(`[Form] Creating character "${name}" with vibe "${vibe}"...`);
+      console.log(`[Form] Creating character "${name}"...`);
 
       const response = await fetch("/api/create-crush", {
         method: "POST",
@@ -125,7 +104,6 @@ export default function BuildYourCrushSection() {
         },
         body: JSON.stringify({
           name: name.trim(),
-          vibe,
           backstory: backstory.trim() || undefined,
           personality: personality.trim() || undefined,
           avatarUrl: avatarBase64,
@@ -153,7 +131,6 @@ export default function BuildYourCrushSection() {
         characterId: result.characterId,
         sessionId: result.sessionId,
         name: name.trim(),
-        vibe,
       });
 
       router.push(`/connecting?${params.toString()}`);
@@ -171,127 +148,54 @@ export default function BuildYourCrushSection() {
   };
 
   return (
-    <section
-      id="build-your-crush"
-      className="relative overflow-hidden py-20 sm:py-24"
-    >
-      <div className="mx-auto max-w-2xl px-4">
-        <div className="relative rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.02] to-white/[0.01] p-8 shadow-2xl backdrop-blur-sm sm:p-10">
-          <div className="absolute inset-0 rounded-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]" />
+    <div className="flex w-full flex-col lg:w-auto lg:flex-1 lg:max-w-lg xl:max-w-xl lg:shrink-0">
+      <div className="relative w-full rounded-2xl p-6">
+        {/* Subtle inner shadow */}
+        <div className="absolute inset-0 rounded-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]" />
 
-          <div className="relative space-y-8">
-            <div className="space-y-3 text-center">
-              <h2 className="text-3xl leading-tight font-bold text-balance text-white sm:text-4xl">
-                Build Your Crush
-              </h2>
-              <p className="text-base text-balance text-white/60 sm:text-lg">
-                Create your AI companion by describing their personality
-              </p>
-            </div>
+        <div className="relative space-y-6 sm:space-y-7 lg:space-y-6 xl:space-y-8">
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-2">
+          <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
+            <div className="space-y-2">
                 <label
                   htmlFor="name"
                   className="block text-sm font-medium text-white/90"
                 >
-                  Their name or nickname{" "}
-                  <span className="text-pink-500">*</span>
+                  Name
                 </label>
                 <input
                   type="text"
                   id="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Luna / Ex / Gym Crush"
+                  placeholder="Enter your crush's name"
                   className="h-11 w-full rounded-lg border border-white/10 bg-white/5 px-4 text-white placeholder-white/30 backdrop-blur-sm transition-colors hover:border-white/20 focus:border-pink-500/50 focus:ring-1 focus:ring-pink-500/20 focus:outline-hidden"
                   required
                 />
-                <p className="text-xs text-white/40">
-                  Use any nickname. This stays between you and the AI.
-                </p>
-              </div>
+            </div>
 
-              <div className="space-y-3">
-                <p className="block text-sm font-medium text-white/90">
-                  Vibe <span className="text-pink-500">*</span>
-                </p>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  {(
-                    [
-                      "playful",
-                      "mysterious",
-                      "romantic",
-                      "bold",
-                      "shy",
-                      "flirty",
-                      "intellectual",
-                      "spicy",
-                    ] as Vibe[]
-                  ).map((v) => (
-                    <button
-                      key={v}
-                      type="button"
-                      onClick={() => setVibe(v)}
-                      className={`group relative rounded-lg px-4 py-3 text-sm font-medium transition-all ${
-                        vibe === v
-                          ? "bg-gradient-to-b from-pink-500 to-pink-600 text-white shadow-md"
-                          : "border border-white/10 bg-white/5 text-white/70 hover:border-white/20 hover:bg-white/10"
-                      }`}
-                      title={vibeDescriptions[v]}
-                    >
-                      <span className="relative z-10">
-                        {v.charAt(0).toUpperCase() + v.slice(1)}
-                      </span>
-                      {vibe !== v && (
-                        <span className="pointer-events-none absolute top-full left-1/2 z-20 mt-2 hidden -translate-x-1/2 rounded-lg border border-white/10 bg-black/90 px-3 py-1.5 text-xs whitespace-nowrap text-white/90 backdrop-blur-sm group-hover:block">
-                          {vibeDescriptions[v]}
-                        </span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-                <p className="text-xs text-white/50">
-                  {vibeDescriptions[vibe]}
-                </p>
-              </div>
-
-              <div className="space-y-2">
+            <div className="space-y-2">
                 <label
                   htmlFor="personality"
                   className="block text-sm font-medium text-white/90"
                 >
-                  Their personality & vibe
+                  Personality
                 </label>
-                <p className="text-xs text-white/40">
-                  Describe how they talk, what they like, their quirks and traits
-                </p>
                 <textarea
                   id="personality"
                   value={personality}
                   onChange={(e) => setPersonality(e.target.value)}
-                  placeholder="Loves late-night conversations, always sends voice notes, uses lots of emojis, teases you about your music taste, secretly a hopeless romantic..."
+                  placeholder="Describe your crush. What makes them unique? What do they like to do? How do they write messages?"
                   rows={4}
                   maxLength={1000}
                   className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-white/30 backdrop-blur-sm transition-colors hover:border-white/20 focus:border-pink-500/50 focus:ring-1 focus:ring-pink-500/20 focus:outline-hidden resize-none"
                 />
-                <div className="flex items-center justify-between text-xs">
-                  <p className="text-white/40">
-                    The more detail you provide, the more authentic the AI
-                  </p>
-                  <p className={`${personality.length > 900 ? "text-pink-400" : "text-white/40"}`}>
-                    {personality.length}/1000
-                  </p>
-                </div>
-              </div>
+            </div>
 
-              <div className="space-y-3">
-                <p className="text-sm font-medium text-white/90">
-                  Add their photos
-                </p>
-                <p className="text-xs text-white/40">
-                  Upload 1-5 pics so they look closer to your real crush
-                </p>
+            <div className="space-y-3">
+              <p className="text-sm font-medium text-white/90">
+                Add photos
+              </p>
 
                 {photos.length < 5 && (
                   <label
@@ -347,35 +251,32 @@ export default function BuildYourCrushSection() {
                     ))}
                   </div>
                 )}
-              </div>
+            </div>
 
-              <div className="space-y-2">
+            <div className="space-y-2">
                 <label
                   htmlFor="backstory"
                   className="block text-sm font-medium text-white/90"
                 >
-                  Your backstory together
+                  How do you know each other?
                 </label>
-                <p className="text-xs text-white/40">
-                  How do you know each other? What&apos;s your history?
-                </p>
                 <input
                   type="text"
                   id="backstory"
                   value={backstory}
                   onChange={(e) => setBackstory(e.target.value)}
                   placeholder="Met in college, always joked about running away together."
-                  className="h-11 w-full rounded-lg border border-white/10 bg-white/5 px-4 text-white placeholder-white/30 backdrop-blur-sm transition-colors hover:border-white/20 focus:border-pink-500/50 focus:ring-1 focus:ring-pink-500/20 focus:outline-hidden"
+                  className="h-11 w-full rounded-lg border border-white/10 bg-white/5 px-4 text-white placeholder-white/30 backdrop-blur-sm transition-colors hover:border-white/20 focus:border-pink-500/50 focus:ring-1 focus:ring-pink-500/20                   focus:outline-hidden"
                 />
-              </div>
+            </div>
 
-              {error && (
+            {error && (
                 <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">
                   {error}
                 </div>
-              )}
+            )}
 
-              <div className="space-y-3 pt-2">
+            <div className="space-y-3 pt-2">
                 <Button
                   type="submit"
                   disabled={isSubmitting || isUploadingImages}
@@ -395,14 +296,11 @@ export default function BuildYourCrushSection() {
                       {photos.length} photo{photos.length > 1 ? "s" : ""} ready to upload
                     </span>
                   )}
-                  Next: you&apos;ll see a quick payment screen in ElizaOS Cloud to
-                  unlock this chat.
                 </p>
-              </div>
-            </form>
-          </div>
+            </div>
+          </form>
         </div>
       </div>
-    </section>
+    </div>
   );
 }
