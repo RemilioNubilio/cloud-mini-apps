@@ -56,10 +56,7 @@ export async function POST(req: NextRequest) {
               },
             });
 
-            let eventCount = 0;
             for await (const event of falStream) {
-              eventCount++;
-              
               if (event.images?.[0]?.url) {
                 const intermediateUrl = event.images[0].url;
                 controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'image', imageUrl: intermediateUrl })}\n\n`));
