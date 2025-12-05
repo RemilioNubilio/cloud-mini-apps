@@ -110,7 +110,30 @@ This project is optimized for [Vercel](https://vercel.com) deployment:
 
 ### Environment Variables
 
-No environment variables are currently required for the landing page.
+Create a `.env.local` file in the root directory with the following variables:
+
+```bash
+# AI Provider Configuration (Required for generation features)
+# At least one is required:
+GROQ_API_KEY=your_groq_api_key_here
+# OR
+OPENAI_API_KEY=your_openai_api_key_here
+
+# Image Generation (Optional - for AI image generation)
+FAL_KEY=your_fal_api_key_here
+
+# ElizaOS Cloud Configuration (Required for character creation)
+NEXT_PUBLIC_CLONEURCRUSH_ELIZA_URL=https://your-eliza-cloud-url.com
+CLONEURCRUSH_ELIZA_API_KEY=your_eliza_api_key_here
+
+# Vercel Blob Storage (Optional - for image uploads)
+BLOB_READ_WRITE_TOKEN=your_vercel_blob_token_here
+```
+
+**Getting API Keys:**
+- **Groq**: Sign up at https://console.groq.com (free tier available)
+- **OpenAI**: Sign up at https://platform.openai.com
+- **Fal.ai**: Sign up at https://fal.ai (for image generation)
 
 ## 📝 Image Assets
 
