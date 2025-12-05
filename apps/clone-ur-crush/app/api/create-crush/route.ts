@@ -10,25 +10,15 @@ type Vibe =
   | "intellectual"
   | "spicy";
 
-interface ScrapedImageData {
-  url: string;
-  base64?: string;
-  isProfilePic?: boolean;
-  source?: "instagram" | "twitter" | "upload";
-}
-
 interface CreateCrushRequest {
   name: string;
   vibe: Vibe;
   backstory?: string;
-  instagram?: string;
-  twitter?: string;
+  personality?: string;
   avatarUrl?: string;
   avatarBase64?: string;
   imageUrls?: string[];
   imageBase64s?: string[];
-  scrapedImages?: ScrapedImageData[];
-  socialContent?: string;
 }
 
 interface ElizaCloudResponse {
@@ -79,11 +69,6 @@ function isValidImageUrl(url: string): boolean {
     const trustedDomains = [
       "vercel-storage.com",
       "blob.vercel-storage.com",
-      "cdninstagram.com",
-      "instagram.com",
-      "fbcdn.net",
-      "twimg.com",
-      "pbs.twimg.com",
     ];
 
     return trustedDomains.some((domain) => parsedUrl.hostname.includes(domain));
@@ -115,26 +100,6 @@ function extractValidImages(body: CreateCrushRequest): {
       avatarBase64 = avatarBase64 || body.avatarUrl;
     } else {
       avatarUrl = body.avatarUrl;
-    }
-  }
-
-  if (body.scrapedImages && Array.isArray(body.scrapedImages)) {
-    for (const img of body.scrapedImages) {
-      if (img.isProfilePic) {
-        if (img.base64 && img.base64.startsWith("data:image/")) {
-          avatarBase64 = avatarBase64 || img.base64;
-        }
-        if (img.url && isValidImageUrl(img.url)) {
-          avatarUrl = avatarUrl || img.url;
-        }
-      } else {
-        if (img.base64 && img.base64.startsWith("data:image/")) {
-          imageBase64s.push(img.base64);
-        }
-        if (img.url && isValidImageUrl(img.url)) {
-          imageUrls.push(img.url);
-        }
-      }
     }
   }
 
@@ -189,18 +154,7 @@ export async function POST(request: NextRequest) {
 
     const sanitizedName = body.name.trim().slice(0, 50);
     const sanitizedBackstory = body.backstory?.trim().slice(0, 500) || "";
-    const sanitizedInstagram =
-      body.instagram
-        ?.trim()
-        .replace(/[^a-zA-Z0-9._]/g, "")
-        .slice(0, 30) || "";
-    const sanitizedTwitter =
-      body.twitter
-        ?.trim()
-        .replace(/[^a-zA-Z0-9._]/g, "")
-        .slice(0, 30) || "";
-    const sanitizedSocialContent =
-      body.socialContent?.trim().slice(0, 1000) || "";
+    const sanitizedPersonality = body.personality?.trim().slice(0, 1000) || "";
 
     const { avatarUrl, avatarBase64, imageUrls, imageBase64s } =
       extractValidImages(body);
@@ -221,21 +175,11 @@ export async function POST(request: NextRequest) {
       bioLines.push(`Backstory: ${sanitizedBackstory}`);
     }
 
-    if (sanitizedSocialContent) {
-      const contentPreview = sanitizedSocialContent.slice(0, 200);
+    if (sanitizedPersonality) {
+      const personalityPreview = sanitizedPersonality.slice(0, 300);
       bioLines.push(
-        `Their vibe: ${contentPreview}${sanitizedSocialContent.length > 200 ? "..." : ""}`,
+        `Personality traits: ${personalityPreview}${sanitizedPersonality.length > 300 ? "..." : ""}`,
       );
-    }
-
-    if (sanitizedInstagram) {
-      bioLines.push(
-        `Instagram: @${sanitizedInstagram} (reference for vibe/style)`,
-      );
-    }
-
-    if (sanitizedTwitter) {
-      bioLines.push(`Twitter: @${sanitizedTwitter} (reference for vibe/style)`);
     }
 
     const finalAvatarUrl = avatarBase64 || avatarUrl;
@@ -246,8 +190,8 @@ export async function POST(request: NextRequest) {
       lore: [
         `${sanitizedName} has a ${body.vibe} personality.`,
         sanitizedBackstory || "You have a special connection with the user.",
-        ...(sanitizedSocialContent
-          ? [`Social personality context: ${sanitizedSocialContent}`]
+        ...(sanitizedPersonality
+          ? [`Personality context: ${sanitizedPersonality}`]
           : []),
       ],
       style: {
@@ -285,7 +229,7 @@ export async function POST(request: NextRequest) {
         hasAvatar: !!finalAvatarUrl,
         avatarType: avatarBase64 ? "base64" : avatarUrl ? "url" : "none",
         hasImages: imageUrls.length > 0 || imageBase64s.length > 0,
-        hasSocialContent: !!sanitizedSocialContent,
+        hasPersonality: !!sanitizedPersonality,
       },
     );
 
@@ -309,12 +253,10 @@ export async function POST(request: NextRequest) {
             source: "landing-page",
             vibe: body.vibe,
             backstory: sanitizedBackstory,
-            instagram: sanitizedInstagram,
-            twitter: sanitizedTwitter,
+            personality: sanitizedPersonality,
             imageUrls: imageUrls,
             imageBase64s: imageBase64s.length > 0 ? imageBase64s : undefined,
             images: allImages.length > 0 ? allImages : undefined,
-            socialContent: sanitizedSocialContent,
             avatarBase64: avatarBase64,
           },
         }),
@@ -368,7 +310,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`[Create-Crush API] ✅ Character created successfully:`, {
+    console.log(`[Create-Crush API] Character created successfully:`, {
       characterId: result.characterId,
       sessionId: result.sessionId,
     });
@@ -381,7 +323,7 @@ export async function POST(request: NextRequest) {
       message: "Character created successfully",
     });
   } catch (error) {
-    console.error("[Create-Crush API] ❌ Unexpected error:", error);
+    console.error("[Create-Crush API] Unexpected error:", error);
 
     return NextResponse.json(
       {

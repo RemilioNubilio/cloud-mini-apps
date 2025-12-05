@@ -1,12 +1,10 @@
 "use client";
 
-import { Instagram, Twitter,Upload, X } from "lucide-react";
+import { Upload, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect,useState } from "react";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
-
-import { ScrapedDataDisplay, type ScrapedProfileData } from "./scraped-profile-card";
 
 type Vibe =
   | "playful"
@@ -18,31 +16,16 @@ type Vibe =
   | "intellectual"
   | "spicy";
 
-interface ScrapedImageData {
-  url: string;
-  base64?: string;
-  isProfilePic?: boolean;
-  source?: "instagram" | "twitter" | "upload";
-}
-
 export default function BuildYourCrushSection() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [vibe, setVibe] = useState<Vibe>("flirty");
   const [backstory, setBackstory] = useState("");
-  const [instagram, setInstagram] = useState("");
-  const [twitter, setTwitter] = useState("");
-  const [socialContent, setSocialContent] = useState("");
+  const [personality, setPersonality] = useState("");
   const [photos, setPhotos] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploadingImages, setIsUploadingImages] = useState(false);
-  const [isScrapingInstagram, setIsScrapingInstagram] = useState(false);
-  const [isScrapingTwitter, setIsScrapingTwitter] = useState(false);
-  const [autoScrapeEnabled, setAutoScrapeEnabled] = useState(true);
   const [error, setError] = useState("");
-
-  const [instagramData, setInstagramData] = useState<ScrapedProfileData | null>(null);
-  const [twitterData, setTwitterData] = useState<ScrapedProfileData | null>(null);
 
   const vibeDescriptions: Record<Vibe, string> = {
     playful: "Fun, teasing, lighthearted banter",
@@ -57,222 +40,13 @@ export default function BuildYourCrushSection() {
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      const newFiles = Array.from(e.target.files).slice(0, 3 - photos.length);
+      const newFiles = Array.from(e.target.files).slice(0, 5 - photos.length);
       setPhotos([...photos, ...newFiles]);
     }
   };
 
   const removePhoto = (index: number) => {
     setPhotos(photos.filter((_, i) => i !== index));
-  };
-
-  useEffect(() => {
-    if (!autoScrapeEnabled) return;
-
-    const cleanUsername = instagram.trim().replace(/^@/, "");
-
-    const isValidUsername =
-      cleanUsername.length >= 3 &&
-      /^[a-zA-Z0-9._]+$/.test(cleanUsername) &&
-      /[a-zA-Z0-9]/.test(cleanUsername);
-
-    if (!isValidUsername) {
-      return;
-    }
-
-    const timeoutId = setTimeout(() => {
-      console.log(`[Form] Triggering Instagram scrape for: ${cleanUsername}`);
-      scrapeProfile("instagram", cleanUsername);
-    }, 2000);
-
-    return () => {
-      clearTimeout(timeoutId);
-    };
-  }, [instagram, autoScrapeEnabled]);
-
-  useEffect(() => {
-    if (!autoScrapeEnabled) return;
-
-    const cleanUsername = twitter.trim().replace(/^@/, "");
-
-    const isValidUsername =
-      cleanUsername.length >= 3 &&
-      /^[a-zA-Z0-9_]+$/.test(cleanUsername) &&
-      /[a-zA-Z0-9]/.test(cleanUsername);
-
-    if (!isValidUsername) {
-      return;
-    }
-
-    const timeoutId = setTimeout(() => {
-      console.log(`[Form] Triggering Twitter scrape for: ${cleanUsername}`);
-      scrapeProfile("twitter", cleanUsername);
-    }, 2000);
-
-    return () => {
-      clearTimeout(timeoutId);
-    };
-  }, [twitter, autoScrapeEnabled]);
-
-  const scrapeProfile = async (platform: "instagram" | "twitter", username: string) => {
-    const setLoading = platform === "instagram" ? setIsScrapingInstagram : setIsScrapingTwitter;
-
-    if (platform === "instagram" && isScrapingInstagram) {
-      console.log(`[Form] Already scraping Instagram, skipping...`);
-      return;
-    }
-    if (platform === "twitter" && isScrapingTwitter) {
-      console.log(`[Form] Already scraping Twitter, skipping...`);
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      console.log(`[Form] 🔍 Scraping ${platform} profile: @${username}`);
-
-      const response = await fetch("/api/scrape-profile", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          platform,
-          username,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: "Failed to scrape profile" }));
-        console.warn(`[Form] ⚠️ Failed to scrape ${platform}:`, errorData.error);
-        return;
-      }
-
-      const result = await response.json();
-
-      if (result.success && result.data) {
-        console.log(`[Form] ✅ Successfully scraped ${platform} profile:`, {
-          username: result.data.username,
-          hasBio: !!result.data.bio,
-          followersCount: result.data.followersCount,
-          postsCount: result.data.recentPosts?.length || result.data.recentTweets?.length || 0,
-          postImagesCount: result.data.postImages?.length || 0,
-          hasProfilePic: !!result.data.profilePicUrl,
-          cached: result.cached,
-        });
-
-        const scrapedData: ScrapedProfileData = {
-          platform,
-          username: result.data.username,
-          fullName: result.data.fullName || result.data.displayName,
-          bio: result.data.bio,
-          followersCount: result.data.followersCount,
-          followingCount: result.data.followingCount,
-          postsCount: result.data.postsCount || result.data.tweetsCount,
-          recentPosts: result.data.recentPosts,
-          recentTweets: result.data.recentTweets,
-          profilePicUrl: result.data.profilePicUrl,
-          profilePicBase64: result.data.profilePicBase64,
-          isPrivate: result.data.isPrivate || result.data.isProtected,
-          isVerified: result.data.isVerified,
-          postImages: result.data.postImages,
-        };
-
-        if (platform === "instagram") {
-          setInstagramData(scrapedData);
-        } else if (platform === "twitter") {
-          setTwitterData(scrapedData);
-        }
-
-        let scrapedText = "";
-        if (platform === "instagram") {
-          if (result.data.bio) {
-            scrapedText += `📸 Instagram (@${result.data.username}):\n${result.data.bio}\n\n`;
-          }
-
-          if (result.data.recentPosts && result.data.recentPosts.length > 0) {
-            scrapedText += "Recent Posts:\n";
-            result.data.recentPosts.slice(0, 5).forEach((post: { caption?: string }) => {
-              if (post.caption && post.caption.trim()) {
-                scrapedText += `• ${post.caption.slice(0, 100)}${post.caption.length > 100 ? "..." : ""}\n`;
-              }
-            });
-          }
-        } else if (platform === "twitter") {
-          if (result.data.bio) {
-            scrapedText += `𝕏 Twitter (@${result.data.username}):\n${result.data.bio}\n\n`;
-          }
-
-          if (result.data.recentTweets && result.data.recentTweets.length > 0) {
-            scrapedText += "Recent Tweets:\n";
-            result.data.recentTweets.slice(0, 5).forEach((tweet: { text?: string }) => {
-              if (tweet.text && tweet.text.trim()) {
-                scrapedText += `• ${tweet.text.slice(0, 100)}${tweet.text.length > 100 ? "..." : ""}\n`;
-              }
-            });
-          }
-        }
-
-        if (scrapedText.trim()) {
-          setSocialContent((prev) => {
-            const platformPrefix = platform === "instagram" ? "📸 Instagram" : "𝕏 Twitter";
-            if (prev.includes(platformPrefix)) {
-              const regex = platform === "instagram"
-                ? /📸 Instagram[^]*?(?=(𝕏 Twitter|$))/
-                : /𝕏 Twitter[^]*?$/;
-              return prev.replace(regex, scrapedText).slice(0, 1000);
-            } else {
-              const separator = prev.trim() ? "\n\n" : "";
-              return (prev + separator + scrapedText).slice(0, 1000);
-            }
-          });
-        }
-      }
-    } catch (error) {
-      console.error(`[Form] ❌ Error scraping ${platform}:`, error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const collectScrapedImages = (): ScrapedImageData[] => {
-    const images: ScrapedImageData[] = [];
-
-    if (instagramData) {
-      if (instagramData.profilePicUrl || instagramData.profilePicBase64) {
-        images.push({
-          url: instagramData.profilePicUrl || "",
-          base64: instagramData.profilePicBase64,
-          isProfilePic: true,
-          source: "instagram",
-        });
-      }
-
-      if (instagramData.postImages) {
-        for (const img of instagramData.postImages.slice(0, 5)) {
-          if (!img.isVideo && img.url) {
-            images.push({
-              url: img.url,
-              isProfilePic: false,
-              source: "instagram",
-            });
-          }
-        }
-      }
-    }
-
-    if (twitterData) {
-      if (twitterData.profilePicUrl || twitterData.profilePicBase64) {
-        images.push({
-          url: twitterData.profilePicUrl || "",
-          base64: twitterData.profilePicBase64,
-          isProfilePic: true,
-          source: "twitter",
-        });
-      }
-    }
-
-    return images;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -292,7 +66,7 @@ export default function BuildYourCrushSection() {
       let imageBase64s: string[] = [];
 
       if (photos.length > 0) {
-        console.log(`[Form] Uploading ${photos.length} image(s)...`);
+        console.log(`[Form] Uploading ${photos.length} image(s) to Blob Storage...`);
         setIsUploadingImages(true);
 
         try {
@@ -326,12 +100,12 @@ export default function BuildYourCrushSection() {
             avatarBase64 = imageUrls[0];
           }
 
-          console.log(`[Form] ✅ Images processed successfully:`, {
+          console.log(`[Form] Images uploaded successfully:`, {
             count: imageUrls.length,
             hasBase64Avatar: !!avatarBase64,
           });
         } catch (uploadError) {
-          console.error("[Form] ❌ Image upload error:", uploadError);
+          console.error("[Form] Image upload error:", uploadError);
           throw new Error(
             uploadError instanceof Error
               ? uploadError.message
@@ -342,77 +116,7 @@ export default function BuildYourCrushSection() {
         }
       }
 
-      const scrapedImages = collectScrapedImages();
-
-      if (scrapedImages.length > 0) {
-        console.log(`[Form] 🔄 Uploading ${scrapedImages.length} scraped image(s) to Vercel Blob...`);
-        setIsUploadingImages(true);
-
-        try {
-          const imagesToUpload = scrapedImages
-            .filter(img => img.url && !img.url.startsWith("data:"))
-            .map(img => ({
-              type: "url" as const,
-              data: img.url,
-            }));
-
-          if (imagesToUpload.length > 0) {
-            const uploadResponse = await fetch("/api/upload-images", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({ images: imagesToUpload }),
-            });
-
-            if (uploadResponse.ok) {
-              const uploadResult = await uploadResponse.json();
-
-              if (uploadResult.images && uploadResult.images.length > 0) {
-                const uploadedUrls = uploadResult.images.map((img: { url: string }) => img.url);
-                imageUrls = [...imageUrls, ...uploadedUrls];
-
-                if (!avatarBase64 && uploadResult.images[0]) {
-                  avatarBase64 = uploadResult.images[0].base64 || uploadResult.images[0].url;
-                }
-
-                console.log(`[Form] ✅ Uploaded ${uploadedUrls.length} scraped images to Vercel Blob`);
-              }
-            } else {
-              console.warn("[Form] ⚠️ Failed to upload scraped images, using original URLs as fallback");
-              const fallbackUrls = scrapedImages.map(img => img.url).filter(Boolean);
-              imageUrls = [...imageUrls, ...fallbackUrls];
-            }
-          }
-
-          const base64Images = scrapedImages.filter(img => img.base64);
-          for (const img of base64Images) {
-            if (img.base64 && !imageBase64s.includes(img.base64)) {
-              imageBase64s.push(img.base64);
-            }
-          }
-        } catch (uploadError) {
-          console.error("[Form] ❌ Error uploading scraped images:", uploadError);
-          const fallbackUrls = scrapedImages.map(img => img.url).filter(Boolean);
-          imageUrls = [...imageUrls, ...fallbackUrls];
-        } finally {
-          setIsUploadingImages(false);
-        }
-      }
-
-      if (!avatarBase64 && scrapedImages.length > 0) {
-        const profilePicImage = scrapedImages.find(img => img.isProfilePic);
-        if (profilePicImage) {
-          avatarBase64 = profilePicImage.base64 || profilePicImage.url;
-        }
-      }
-
-      console.log(`[Form] Creating character "${name}" with vibe "${vibe}"...`, {
-        hasUploadedImages: imageUrls.length > 0,
-        hasScrapedImages: scrapedImages.length > 0,
-        hasAvatar: !!avatarBase64,
-        imageUrlsAreBlobUrls: imageUrls.every(url => url.includes("blob.vercel-storage.com")),
-      });
+      console.log(`[Form] Creating character "${name}" with vibe "${vibe}"...`);
 
       const response = await fetch("/api/create-crush", {
         method: "POST",
@@ -423,14 +127,11 @@ export default function BuildYourCrushSection() {
           name: name.trim(),
           vibe,
           backstory: backstory.trim() || undefined,
-          instagram: instagram.trim() || undefined,
-          twitter: twitter.trim() || undefined,
-          socialContent: socialContent.trim() || undefined,
+          personality: personality.trim() || undefined,
           avatarUrl: avatarBase64,
           avatarBase64: avatarBase64,
           imageUrls: imageUrls,
           imageBase64s: imageBase64s.length > 0 ? imageBase64s : undefined,
-          scrapedImages: scrapedImages.length > 0 ? scrapedImages : undefined,
         }),
       });
 
@@ -443,7 +144,7 @@ export default function BuildYourCrushSection() {
 
       const result = await response.json();
 
-      console.log(`[Form] ✅ Character created successfully:`, {
+      console.log(`[Form] Character created successfully:`, {
         characterId: result.characterId,
         sessionId: result.sessionId,
       });
@@ -457,7 +158,7 @@ export default function BuildYourCrushSection() {
 
       router.push(`/connecting?${params.toString()}`);
     } catch (err) {
-      console.error("[Form] ❌ Error:", err);
+      console.error("[Form] Error:", err);
       setError(
         err instanceof Error
           ? err.message
@@ -468,10 +169,6 @@ export default function BuildYourCrushSection() {
       setIsUploadingImages(false);
     }
   };
-
-  const totalScrapedImages =
-    (instagramData?.postImages?.length || 0) +
-    (twitterData?.postImages?.length || 0);
 
   return (
     <section
@@ -485,10 +182,10 @@ export default function BuildYourCrushSection() {
           <div className="relative space-y-8">
             <div className="space-y-3 text-center">
               <h2 className="text-3xl leading-tight font-bold text-balance text-white sm:text-4xl">
-                Build Your Crush in One Step
+                Build Your Crush
               </h2>
               <p className="text-base text-balance text-white/60 sm:text-lg">
-                We&apos;ll send this to ElizaOS Cloud to create your private AI chat.
+                Create your AI companion by describing their personality
               </p>
             </div>
 
@@ -559,166 +256,44 @@ export default function BuildYourCrushSection() {
                 </p>
               </div>
 
-              <div className="space-y-4 rounded-lg border border-white/5 bg-white/[0.02] p-4">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-white/90">
-                      Optional: Their social media
-                    </p>
-                    <p className="text-xs text-white/40 mt-1">
-                      Add their username to auto-capture their vibe + photos
-                    </p>
-                  </div>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={autoScrapeEnabled}
-                      onChange={(e) => setAutoScrapeEnabled(e.target.checked)}
-                      className="rounded border-white/20 bg-white/5 text-pink-500 focus:ring-pink-500/20"
-                    />
-                    <span className="text-xs text-white/60">Auto-fill</span>
-                  </label>
-                </div>
-
-                <div className="space-y-2">
-                  <label
-                    htmlFor="instagram"
-                    className="flex items-center gap-2 text-sm text-white/70"
-                  >
-                    <Instagram className="size-4" />
-                    Instagram
-                    {isScrapingInstagram && (
-                      <span className="text-xs text-pink-400 animate-pulse">
-                        Scraping...
-                      </span>
-                    )}
-                  </label>
-                  <input
-                    type="text"
-                    id="instagram"
-                    value={instagram}
-                    onChange={(e) => setInstagram(e.target.value)}
-                    placeholder="username"
-                    disabled={isScrapingInstagram}
-                    className="h-10 w-full rounded-lg border border-white/10 bg-white/5 px-4 text-sm text-white placeholder-white/30 backdrop-blur-sm transition-colors hover:border-white/20 focus:border-pink-500/50 focus:ring-1 focus:ring-pink-500/20 focus:outline-hidden disabled:opacity-50"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label
-                    htmlFor="twitter"
-                    className="flex items-center gap-2 text-sm text-white/70"
-                  >
-                    <Twitter className="size-4" />X (Twitter)
-                    {isScrapingTwitter && (
-                      <span className="text-xs text-pink-400 animate-pulse">
-                        Scraping...
-                      </span>
-                    )}
-                  </label>
-                  <input
-                    type="text"
-                    id="twitter"
-                    value={twitter}
-                    onChange={(e) => setTwitter(e.target.value)}
-                    placeholder="username"
-                    disabled={isScrapingTwitter}
-                    className="h-10 w-full rounded-lg border border-white/10 bg-white/5 px-4 text-sm text-white placeholder-white/30 backdrop-blur-sm transition-colors hover:border-white/20 focus:border-pink-500/50 focus:ring-1 focus:ring-pink-500/20 focus:outline-hidden disabled:opacity-50"
-                  />
-                </div>
-
-                {(instagramData || twitterData) && (
-                  <div className="border-t border-white/5 pt-4">
-                    <ScrapedDataDisplay
-                      instagramData={instagramData}
-                      twitterData={twitterData}
-                      onRemoveInstagram={() => {
-                        setInstagramData(null);
-                        setSocialContent(prev => {
-                          const regex = /📸 Instagram[^]*?(?=(𝕏 Twitter|$))/;
-                          return prev.replace(regex, "").trim();
-                        });
-                      }}
-                      onRemoveTwitter={() => {
-                        setTwitterData(null);
-                        setSocialContent(prev => {
-                          const regex = /𝕏 Twitter[^]*?$/;
-                          return prev.replace(regex, "").trim();
-                        });
-                      }}
-                    />
-                  </div>
-                )}
-
-                <div className="space-y-2 border-t border-white/5 pt-4">
-                  <label
-                    htmlFor="socialContent"
-                    className="block text-sm font-medium text-white/90"
-                  >
-                    {(instagramData || twitterData)
-                      ? "Additional context (optional)"
-                      : "Their vibe & personality"}
-                  </label>
-                  <p className="text-xs text-white/40">
-                    {(instagramData || twitterData)
-                      ? "Add extra details to refine their personality"
-                      : autoScrapeEnabled
-                        ? "Enter usernames above for auto-fill, or paste content manually"
-                        : "Paste their Instagram bio, tweets, or post captions"}
+              <div className="space-y-2">
+                <label
+                  htmlFor="personality"
+                  className="block text-sm font-medium text-white/90"
+                >
+                  Their personality & vibe
+                </label>
+                <p className="text-xs text-white/40">
+                  Describe how they talk, what they like, their quirks and traits
+                </p>
+                <textarea
+                  id="personality"
+                  value={personality}
+                  onChange={(e) => setPersonality(e.target.value)}
+                  placeholder="Loves late-night conversations, always sends voice notes, uses lots of emojis, teases you about your music taste, secretly a hopeless romantic..."
+                  rows={4}
+                  maxLength={1000}
+                  className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-white/30 backdrop-blur-sm transition-colors hover:border-white/20 focus:border-pink-500/50 focus:ring-1 focus:ring-pink-500/20 focus:outline-hidden resize-none"
+                />
+                <div className="flex items-center justify-between text-xs">
+                  <p className="text-white/40">
+                    The more detail you provide, the more authentic the AI
                   </p>
-
-                  <textarea
-                    id="socialContent"
-                    value={socialContent}
-                    onChange={(e) => setSocialContent(e.target.value)}
-                    placeholder={
-                      (instagramData || twitterData)
-                        ? "Add any extra details about their personality..."
-                        : "Example: 'Living life on my own terms' or paste recent posts..."
-                    }
-                    rows={(instagramData || twitterData) ? 3 : 5}
-                    maxLength={1000}
-                    className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-white/30 backdrop-blur-sm transition-colors hover:border-white/20 focus:border-pink-500/50 focus:ring-1 focus:ring-pink-500/20 focus:outline-hidden resize-none"
-                  />
-                  <div className="flex items-center justify-between text-xs">
-                    <p className="text-white/40">
-                      {autoScrapeEnabled && (isScrapingInstagram || isScrapingTwitter) ? (
-                        <span className="text-pink-400">Fetching profile data...</span>
-                      ) : (
-                        "This helps create a more authentic personality"
-                      )}
-                    </p>
-                    <p className={`${socialContent.length > 900 ? "text-pink-400" : "text-white/40"}`}>
-                      {socialContent.length}/1000
-                    </p>
-                  </div>
+                  <p className={`${personality.length > 900 ? "text-pink-400" : "text-white/40"}`}>
+                    {personality.length}/1000
+                  </p>
                 </div>
-
-                {autoScrapeEnabled && (
-                  <div className="text-xs text-white/30 bg-white/[0.02] rounded-lg p-3 border border-white/5">
-                    <p className="font-medium text-white/40 mb-1">Auto-fill Disclaimer:</p>
-                    <p>
-                      Profile data is scraped from publicly available pages. This feature is for personal use only.
-                      By using auto-fill, you accept responsibility for respecting platform Terms of Service.
-                    </p>
-                  </div>
-                )}
               </div>
 
               <div className="space-y-3">
                 <p className="text-sm font-medium text-white/90">
-                  Optional: Add photos
+                  Add their photos
                 </p>
                 <p className="text-xs text-white/40">
-                  Upload 1-3 pics so she looks closer to your real crush
-                  {totalScrapedImages > 0 && (
-                    <span className="text-pink-400 ml-1">
-                      ({totalScrapedImages} already captured from social)
-                    </span>
-                  )}
+                  Upload 1-5 pics so they look closer to your real crush
                 </p>
 
-                {photos.length < 3 && (
+                {photos.length < 5 && (
                   <label
                     htmlFor="photos"
                     className="group flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-white/10 bg-white/[0.02] px-6 py-8 transition-all hover:border-white/20 hover:bg-white/[0.04]"
@@ -727,8 +302,11 @@ export default function BuildYourCrushSection() {
                     <p className="text-sm text-white/50">
                       Click to upload{" "}
                       {photos.length > 0
-                        ? `(${3 - photos.length} more)`
+                        ? `(${5 - photos.length} more)`
                         : "photos"}
+                    </p>
+                    <p className="text-xs text-white/30 mt-1">
+                      JPG, PNG up to 10MB each
                     </p>
                     <input
                       id="photos"
@@ -760,6 +338,11 @@ export default function BuildYourCrushSection() {
                         >
                           <X className="size-3 text-white" />
                         </button>
+                        {index === 0 && (
+                          <span className="absolute bottom-1 left-1 rounded bg-pink-500/80 px-1.5 py-0.5 text-[10px] font-medium text-white">
+                            Avatar
+                          </span>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -771,8 +354,11 @@ export default function BuildYourCrushSection() {
                   htmlFor="backstory"
                   className="block text-sm font-medium text-white/90"
                 >
-                  Optional backstory
+                  Your backstory together
                 </label>
+                <p className="text-xs text-white/40">
+                  How do you know each other? What&apos;s your history?
+                </p>
                 <input
                   type="text"
                   id="backstory"
@@ -800,17 +386,13 @@ export default function BuildYourCrushSection() {
                     ? "Uploading images..."
                     : isSubmitting
                     ? "Creating..."
-                    : "Continue to ElizaOS Cloud"}
+                    : "Create My Crush"}
                 </Button>
 
                 <p className="text-center text-xs text-white/40">
-                  {(photos.length > 0 || totalScrapedImages > 0) && !isSubmitting && !isUploadingImages && (
+                  {photos.length > 0 && !isSubmitting && !isUploadingImages && (
                     <span className="block text-pink-400 mb-1">
-                      {photos.length > 0 && `${photos.length} uploaded`}
-                      {photos.length > 0 && totalScrapedImages > 0 && " + "}
-                      {totalScrapedImages > 0 && `${totalScrapedImages} scraped`}
-                      {" image"}
-                      {(photos.length + totalScrapedImages) > 1 ? "s" : ""} ready
+                      {photos.length} photo{photos.length > 1 ? "s" : ""} ready to upload
                     </span>
                   )}
                   Next: you&apos;ll see a quick payment screen in ElizaOS Cloud to
