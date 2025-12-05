@@ -1,123 +1,163 @@
-# 🚀 Cloud Mini Apps - Turborepo Monorepo
+# CloneUrCrush - Landing Page
 
-A Turborepo monorepo for managing multiple mini apps with independent deployments to Vercel.
+A high-conversion landing page for CloneUrCrush, an AI girlfriend platform that allows users to create AI clones of their crushes. Built with Next.js, Tailwind CSS, and shadcn/ui.
 
-## 📁 Structure
+[![Next.js](https://img.shields.io/badge/Next.js-15-black)](https://nextjs.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4.1-blue)](https://tailwindcss.com/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue)](https://www.typescriptlang.org/)
 
-```
-cloud-mini-apps/
-├── apps/
-│   └── clone-ur-crush/      # Clone Ur Crush app
-├── packages/
-│   ├── ui/                  # Shared UI components
-│   ├── eslint-config/       # ESLint configs
-│   └── typescript-config/   # TypeScript configs
-├── .env.example             # Environment variables template
-└── README.md
-```
+## 🚀 Quick Start
 
-## ⚡ Quick Start
-
-### 1. Install Dependencies
+1. **Install dependencies:**
 
 ```bash
 npm install
 ```
 
-### 2. Set Up Environment Variables
-
-```bash
-# Copy the example and fill in your values
-cp .env.example .env
-
-# Edit .env with your actual values:
-# - BLOB_READ_WRITE_TOKEN (from Vercel Blob Storage)
-# - ELIZA_CLOUD_API_KEY (from Eliza Cloud)
-```
-
-### 3. Run Development Server
+2. **Start the development server:**
 
 ```bash
 npm run dev
-# App runs at http://localhost:3002
 ```
 
-## 🔐 Environment Variables
+3. **Open [http://localhost:3000](http://localhost:3000)** to view the landing page
 
-Required variables (see `.env.example` in root):
+## 📁 Project Structure
+
+```
+├── app/                    # Next.js app directory
+│   ├── layout.tsx         # Root layout with theme provider
+│   ├── page.tsx           # Main landing page
+│   └── globals.css        # Global styles
+├── components/
+│   ├── cloneurcrush/      # Custom landing page components
+│   │   ├── hero.tsx       # Hero section with video demo
+│   │   ├── emotional-hook.tsx  # Mood cards gallery
+│   │   ├── social-proof.tsx    # Customer reviews
+│   │   ├── demo-flow.tsx       # How it works section
+│   │   ├── comparison.tsx      # Feature comparison
+│   │   ├── offer-stack.tsx     # Pricing tiers
+│   │   ├── faq.tsx             # FAQ section
+│   │   └── cta-section.tsx     # Call to action
+│   └── ui/                # Reusable UI components (shadcn/ui)
+├── public/
+│   ├── images/            # Static images (mood cards, avatars, etc.)
+│   └── videos/            # Demo videos
+└── IMAGE-GENERATION-PROMPTS.md  # AI image generation prompts
+```
+
+## ✨ Features
+
+- 🎨 **Modern Design**: Built with shadcn/ui and Tailwind CSS
+- 📱 **Fully Responsive**: Optimized for all devices
+- ⚡ **Performance Optimized**: Fast loading with Next.js 15
+- 🌗 **Dark Mode**: Sleek dark theme throughout
+- 🎥 **Video Integration**: Interactive demo videos in hero and gallery sections
+- 🖼️ **Mood Cards Gallery**: 6 unique AI girlfriend aesthetic themes
+- 💬 **Social Proof**: Customer reviews and testimonials
+- 🎯 **Conversion Optimized**: Strategic CTAs and persuasive copywriting
+
+## 🎨 Customization
+
+### Adding New Mood Cards
+
+Edit `components/cloneurcrush/emotional-hook.tsx` and add to the `MOOD_CARDS` array:
+
+```typescript
+{
+  title: "Your Mood Name",
+  description: "Your description here",
+  image: "/images/mood-your-name.png",
+}
+```
+
+Then generate the image using prompts from `IMAGE-GENERATION-PROMPTS.md`.
+
+### Updating Copy
+
+All text content is directly in the component files under `components/cloneurcrush/`. Edit the JSX to update copy.
+
+### Styling
+
+- Global styles: `app/globals.css`
+- Tailwind config: `tailwind.config.ts`
+- Color scheme uses pink (`#EC4899`) and purple (`#A855F7`) as primary colors
+
+## 🛠️ Tech Stack
+
+- **Framework**: [Next.js 15](https://nextjs.org/) with App Router
+- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
+- **UI Components**: [shadcn/ui](https://ui.shadcn.com/)
+- **Language**: [TypeScript](https://www.typescriptlang.org/)
+- **Icons**: [Lucide Icons](https://lucide.dev/)
+- **Animations**: CSS transitions and transforms
+
+## 📦 Build & Deploy
+
+### Build for Production
 
 ```bash
-NEXT_PUBLIC_ELIZA_CLOUD_URL=http://localhost:3000
-CLONEURCRUSH_ELIZA_API_KEY=your-api-key
+npm run build
 ```
 
-**Note:** `BLOB_READ_WRITE_TOKEN` is automatically provided by Vercel when you connect Blob Storage in production.
+### Deploy to Vercel
 
-All environment variables are prefixed with `CLONEURCRUSH_` for clarity and to prevent conflicts when adding more mini apps.
+This project is optimized for [Vercel](https://vercel.com) deployment:
 
-## 🌐 Deploying to Vercel
+1. Push your code to GitHub
+2. Import the repository in Vercel
+3. Deploy automatically with zero configuration
 
-1. **Push to GitHub**
+### Environment Variables
 
-   ```bash
-   git push origin main
-   ```
-
-2. **Import to Vercel**
-   - Go to https://vercel.com/new
-   - Import your repository
-   - **Set Root Directory:** `apps/clone-ur-crush`
-   - Deploy
-
-3. **Add Environment Variables**
-   - Settings → Environment Variables
-   - Add all variables from `.env.example`
-   - Connect Vercel Blob Storage (token auto-added)
-
-4. **Configure Custom Domain**
-   - Settings → Domains
-   - Add your domain
-
-## 🛠️ Commands
+Create a `.env.local` file in the root directory with the following variables:
 
 ```bash
-npm run dev         # Run all apps
-npm run build       # Build all apps
-npm run lint        # Lint all apps
-npm run check-types # Type check
+# AI Provider Configuration (Required for generation features)
+# At least one is required:
+GROQ_API_KEY=your_groq_api_key_here
+# OR
+OPENAI_API_KEY=your_openai_api_key_here
+
+# Image Generation (Optional - for AI image generation)
+FAL_KEY=your_fal_api_key_here
+
+# ElizaOS Cloud Configuration (Required for character creation)
+NEXT_PUBLIC_CLONEURCRUSH_ELIZA_URL=https://your-eliza-cloud-url.com
+CLONEURCRUSH_ELIZA_API_KEY=your_eliza_api_key_here
+
+# Vercel Blob Storage (Optional - for image uploads)
+BLOB_READ_WRITE_TOKEN=your_vercel_blob_token_here
 ```
 
-## 🆕 Adding a New App
+**Getting API Keys:**
+- **Groq**: Sign up at https://console.groq.com (free tier available)
+- **OpenAI**: Sign up at https://platform.openai.com
+- **Fal.ai**: Sign up at https://fal.ai (for image generation)
 
-```bash
-# Copy clone-ur-crush as template
-cp -r apps/clone-ur-crush apps/new-app
+## 📝 Image Assets
 
-# Update package.json name and port
-# Add app-specific env vars to root .env
-# Install and run
-npm install
-cd apps/new-app && npm run dev
-```
+All images should be placed in `public/images/`:
 
-## 📦 Packages
+- Hero background: `hero-bg.png`
+- Mood cards: `mood-*.png` (6 cards)
+- Demo previews: `demo-preview-1.png`, `demo-preview-2.png`
+- Chat avatar: `chat-ava.png`
 
-### `@repo/ui`
+See `IMAGE-GENERATION-PROMPTS.md` for AI image generation prompts.
 
-Shared React components used across apps.
+## 🎥 Video Assets
 
-### `@repo/eslint-config` & `@repo/typescript-config`
+Place demo videos in `public/videos/`:
 
-Shared linting and TypeScript configurations.
+- `video-1.mp4` - Main hero demo
+- `video-2.mp4` - Mood showcase
+- `video-3.mp4` - Additional demos
 
-## 🔗 Tech Stack
+## 📄 License
 
-- **Framework:** [Next.js 15+](https://nextjs.org/)
-- **Language:** [TypeScript](https://www.typescriptlang.org/)
-- **Build:** [Turborepo](https://turbo.build/)
-- **Validation:** [Zod](https://zod.dev/)
-- **Deployment:** [Vercel](https://vercel.com/)
+MIT License - feel free to use this for your own projects.
 
 ---
 
-**Questions?** Check the app-specific README in `apps/clone-ur-crush/` or open an issue.
+Built with 💖 using [Launch UI](https://launchuicomponents.com)
