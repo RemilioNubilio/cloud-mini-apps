@@ -1,0 +1,7 @@
+{
+  "name": "edad-chat",
+  "version": "0.1.0",
+  "private": true,
+  "description": "eDad chat-in-place variant — keeps users on app domain with affiliate markup header",
+  "author": "RemilioNubilio"
+}
