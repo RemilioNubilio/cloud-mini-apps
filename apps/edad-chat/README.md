@@ -31,7 +31,9 @@ browser                                app backend                       eliza c
 | `public/index.html` | landing + chat UI + OAuth sign-in + message loop |
 | `public/style.css` | dad-energy dark theme, SVG silhouette, responsive |
 | `public/meta.json` | app index metadata |
-| `api/proxy.ts` | Next.js-style catch-all route handler; requires `x-user-token` (Steward OAuth JWT); forwards to `ELIZA_CLOUD_URL/api/v1/messages` with `X-App-Id` and `X-Affiliate-Code` headers |
+| `api/proxy.ts` | Next.js-style catch-all route handler — used when edad-chat is mounted under a host Next.js app at `/api/*` |
+| `server.ts` | standalone Bun server with the same wire behavior as `api/proxy.ts` — used when edad-chat runs as its own container |
+| `Dockerfile` | bun:1.2-alpine image, exposes :3000, includes `/health` for ECS health checks |
 
 ## Env required
 
@@ -62,12 +64,52 @@ Neither is strictly better — they serve different distribution models. `edad/`
 
 ## Deploy checklist
 
+### Option A — embedded under a host Next.js app
+
 1. Register app via `POST https://www.elizacloud.ai/api/v1/apps` with `{ name, app_url, skipGitHubRepo: true }` → get `app_id` back
 2. (Optional) bump `inference_markup_percentage` on the app row to a value > 0 so you earn the markup share on every chat
 3. Go to https://www.elizacloud.ai/dashboard/affiliates → create affiliate code, set affiliate markup %
 4. Set `ELIZA_APP_ID` and `ELIZA_AFFILIATE_CODE` env vars on the host
 5. Serve `public/` as static assets; wire `api/proxy.ts` as a server route at `/api/*`
 6. Users hit your site → sign in with Eliza Cloud → chat → app creator earns markup; affiliate earns affiliate share; user spends their own org credits
+
+### Option B — standalone container on Eliza Cloud
+
+Self-hosting closes the loop: app earnings refill the org's credit balance via the earnings auto-fund service, container daily-billing keeps debiting that balance, and the app keeps itself alive as long as it earns enough.
+
+```bash
+# 1. build + push to your ECR (or any registry the cloud can pull from)
+docker build -t edad-chat:latest -f apps/edad-chat/Dockerfile apps/edad-chat
+docker tag edad-chat:latest <account>.dkr.ecr.<region>.amazonaws.com/edad-chat:latest
+docker push <account>.dkr.ecr.<region>.amazonaws.com/edad-chat:latest
+
+# 2. POST /api/v1/containers (use any cloud API key with deploy scope)
+curl -X POST https://www.elizacloud.ai/api/v1/containers \
+  -H "Authorization: Bearer $ELIZA_API_KEY" \
+  -H "content-type: application/json" \
+  -d '{
+    "name": "edad-chat",
+    "project_name": "edad",
+    "port": 3000,
+    "cpu": 256,
+    "memory": 512,
+    "ecr_image_uri": "<account>.dkr.ecr.<region>.amazonaws.com/edad-chat:latest",
+    "health_check_path": "/health",
+    "environment_vars": {
+      "ELIZA_APP_ID": "<your-app-uuid>",
+      "ELIZA_AFFILIATE_CODE": "<your-affiliate-code>",
+      "ELIZA_CLOUD_URL": "https://www.elizacloud.ai"
+    }
+  }'
+
+# 3. (one-time, on the org dashboard) enable earnings auto-fund:
+#    PUT /api/v1/billing/earnings-auto-fund
+#    { "enabled": true, "amount": 5, "threshold": 2, "keepBalance": 10 }
+#    → when org credits dip below $2, auto-credit $5 from your redeemable
+#      earnings, keeping at least $10 cashable at all times.
+```
+
+The container listens on `:3000`, exposes `/health` for the ECS health check, and the same `/api/*` routes as the embedded variant. No code differs between Option A and B — just the host process.
 
 ## License / attribution
 
