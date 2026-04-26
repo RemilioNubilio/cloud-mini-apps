@@ -193,16 +193,6 @@ body {
 .notice.warn { background: rgba(199, 154, 63, 0.10); color: var(--accent); }
 .notice.error { background: rgba(216, 108, 108, 0.10); color: var(--danger); }
 
-.byok-link {
-  margin: 0;
-  padding: 4px 18px 14px;
-  text-align: center;
-  font-size: 11px;
-  color: var(--muted);
-}
-.byok-link a { color: var(--muted); text-decoration: underline; text-decoration-style: dotted; }
-.byok-link a:hover { color: var(--accent); }
-
 /* messages */
 .messages {
   overflow-y: auto;
@@ -296,113 +286,6 @@ body {
 }
 .composer button:hover:not(:disabled) { filter: brightness(1.08); }
 .composer button:disabled { opacity: 0.5; cursor: not-allowed; }
-
-/* modal */
-.modal {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-  backdrop-filter: blur(4px);
-}
-.modal[hidden] { display: none; }
-
-.modal-card {
-  background: var(--bg-2);
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 28px 28px 22px;
-  width: min(440px, 92vw);
-  box-shadow: var(--shadow);
-  position: relative;
-}
-.modal-card h2 {
-  margin: 0 0 10px;
-  font-family: var(--sans);
-  color: var(--accent);
-  font-size: 22px;
-}
-.modal-card p { color: var(--muted); font-size: 14px; margin: 0 0 16px; line-height: 1.5; }
-.modal-card .steps { color: var(--text); font-size: 14px; padding-left: 22px; margin: 0 0 16px; }
-.modal-card .steps li { margin: 6px 0; }
-.modal-card .steps a { color: var(--accent); }
-
-.modal-card label {
-  display: block;
-  font-size: 12px;
-  color: var(--muted);
-  margin-bottom: 6px;
-  font-family: var(--mono);
-  letter-spacing: 0.5px;
-}
-.modal-card code { background: var(--bg-3); padding: 1px 5px; border-radius: 4px; font-size: 12px; }
-
-.modal-card input[type="password"] {
-  width: 100%;
-  background: var(--bg-3);
-  color: var(--text);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 10px 12px;
-  font-family: var(--mono);
-  font-size: 13px;
-  outline: none;
-}
-.modal-card input[type="password"]:focus { border-color: var(--accent-2); }
-
-.modal-actions {
-  display: flex;
-  gap: 10px;
-  justify-content: flex-end;
-  margin-top: 16px;
-}
-.modal-actions button {
-  padding: 9px 18px;
-  border-radius: 8px;
-  font-size: 13px;
-  cursor: pointer;
-  font-family: inherit;
-  text-transform: lowercase;
-  letter-spacing: 0.3px;
-}
-.modal-actions .primary {
-  background: var(--accent);
-  color: #1a1406;
-  border: none;
-  font-weight: 600;
-}
-.modal-actions .primary:hover { filter: brightness(1.08); }
-.modal-actions .ghost {
-  background: transparent;
-  color: var(--muted);
-  border: 1px solid var(--line);
-}
-.modal-actions .ghost:hover { color: var(--text); border-color: var(--accent-2); }
-
-.ref-note {
-  margin: 14px 0 0 !important;
-  padding-top: 14px;
-  border-top: 1px solid var(--line);
-  font-size: 11px !important;
-  color: var(--muted);
-}
-.ref-note a { color: var(--accent); }
-
-.modal-close {
-  position: absolute;
-  top: 10px; right: 12px;
-  background: transparent;
-  border: none;
-  color: var(--muted);
-  font-size: 26px;
-  cursor: pointer;
-  line-height: 1;
-  padding: 4px 8px;
-}
-.modal-close:hover { color: var(--text); }
 
 /* responsive */
 @media (max-width: 760px) {
