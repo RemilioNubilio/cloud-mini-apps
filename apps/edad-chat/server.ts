@@ -1,28 +1,41 @@
 /**
  * Standalone Bun server for the edad-chat container deployment.
  *
- * Same wire behavior as the Next.js `api/proxy.ts` handler — this exists
- * so eDad-chat can run as a single ECS task on eliza cloud (image →
- * /api/v1/containers) instead of relying on a wrapping host app.
- *
  * Routes:
  *   GET  /                  → public/index.html
  *   GET  /style.css, etc.   → public/* static
  *   GET  /api/config        → non-secret OAuth config (app_id, cloud_url)
- *   *    /api/<path>        → forwarded to ELIZA_API_BASE with the user's
- *                             Steward JWT (x-user-token) as Bearer auth
- *   GET  /health            → "ok" for container health probes
+ *   POST /api/messages      → forwarded to ELIZA_CLOUD_URL via @elizaos/cloud-sdk
+ *   GET  /health            → "ok" for ECS health probes
+ *
+ * Auth: the browser obtains a Steward JWT via OAuth and sends it on every
+ * /api/messages call as `x-user-token`. The server forwards that as the
+ * SDK's bearer token, so the upstream debits the signed-in user's org
+ * credit balance — keeping the monetization story honest.
+ *
+ * The SDK forwards `x-app-id` and `x-affiliate-code` as default headers
+ * (when configured) so upstream attributes the inference markup to the
+ * app creator and the affiliate share to the affiliate code holder.
  */
 
+import { CloudApiError, ElizaCloudClient } from "@elizaos/cloud-sdk";
 import { join } from "node:path";
 
 const PORT = Number(process.env.PORT ?? 3000);
 const PUBLIC_DIR = join(import.meta.dir, "public");
 
 const CLOUD_URL = (process.env.ELIZA_CLOUD_URL ?? "https://www.elizacloud.ai").replace(/\/+$/, "");
-const UPSTREAM = (process.env.ELIZA_API_BASE ?? `${CLOUD_URL}/api/v1`).replace(/\/+$/, "");
 const AFFILIATE_CODE = process.env.ELIZA_AFFILIATE_CODE ?? "";
 const APP_ID = process.env.ELIZA_APP_ID ?? "";
+
+// Sticky headers attached to every upstream call. Empty values are
+// intentionally omitted: passing an unknown affiliate code makes upstream
+// 500 with a raw DB error leak.
+const STICKY_HEADERS: Record<string, string> = {
+  ...(APP_ID ? { "x-app-id": APP_ID } : {}),
+  ...(AFFILIATE_CODE ? { "x-affiliate-code": AFFILIATE_CODE } : {}),
+  "anthropic-version": "2023-06-01",
+};
 
 function jsonError(status: number, code: string, message: string): Response {
   return new Response(JSON.stringify({ error: { code, message } }), {
@@ -31,7 +44,31 @@ function jsonError(status: number, code: string, message: string): Response {
   });
 }
 
+async function forwardMessages(req: Request, userToken: string): Promise<Response> {
+  const cloud = new ElizaCloudClient({
+    baseUrl: CLOUD_URL,
+    bearerToken: userToken,
+    defaultHeaders: STICKY_HEADERS,
+  });
+
+  try {
+    const json = await req.json();
+    const result = await cloud.routes.postApiV1Messages({ json });
+    return Response.json(result);
+  } catch (err) {
+    if (err instanceof CloudApiError) {
+      return new Response(JSON.stringify(err.errorBody), {
+        status: err.statusCode,
+        headers: { "content-type": "application/json", "cache-control": "no-store" },
+      });
+    }
+    return jsonError(502, "upstream_unreachable", "eliza cloud didn't answer the phone. try again in a sec.");
+  }
+}
+
 async function handleApi(req: Request, segments: string[]): Promise<Response> {
+  // Local-only config endpoint — hands the browser the non-secret OAuth
+  // config it needs to start the "Sign in with Eliza Cloud" flow.
   if (segments.length === 1 && segments[0] === "config") {
     return Response.json(
       { app_id: APP_ID || null, cloud_url: CLOUD_URL, affiliate_code: AFFILIATE_CODE },
@@ -48,38 +85,15 @@ async function handleApi(req: Request, segments: string[]): Promise<Response> {
     );
   }
 
-  const fwd: Record<string, string> = {
-    "content-type": req.headers.get("content-type") ?? "application/json",
-    "anthropic-version": "2023-06-01",
-    authorization: `Bearer ${userToken}`,
-  };
-  if (AFFILIATE_CODE) fwd["x-affiliate-code"] = AFFILIATE_CODE;
-  if (APP_ID) fwd["x-app-id"] = APP_ID;
-
-  const target = `${UPSTREAM}/${segments.join("/")}${new URL(req.url).search}`;
-  const init: RequestInit = { method: req.method, headers: fwd };
-  if (req.method !== "GET" && req.method !== "HEAD") {
-    init.body = await req.arrayBuffer();
+  if (segments.length === 1 && segments[0] === "messages" && req.method === "POST") {
+    return forwardMessages(req, userToken);
   }
 
-  try {
-    const res = await fetch(target, init);
-    const body = await res.arrayBuffer();
-    return new Response(body, {
-      status: res.status,
-      headers: {
-        "content-type": res.headers.get("content-type") ?? "application/json",
-        "cache-control": "no-store",
-      },
-    });
-  } catch {
-    return jsonError(502, "upstream_unreachable", "eliza cloud didn't answer the phone. try again in a sec.");
-  }
+  return jsonError(404, "not_found", "unknown route");
 }
 
 async function serveStatic(pathname: string): Promise<Response | null> {
   const target = pathname === "/" ? "/index.html" : pathname;
-  // Reject anything trying to break out of public/.
   if (target.includes("..") || !target.startsWith("/")) return null;
   const file = Bun.file(join(PUBLIC_DIR, target));
   if (!(await file.exists())) return null;
@@ -112,5 +126,6 @@ const server = Bun.serve({
 });
 
 console.log(`[edad-chat] listening on http://${server.hostname}:${server.port}`);
-console.log(`[edad-chat] upstream: ${UPSTREAM}`);
-console.log(`[edad-chat] app_id: ${APP_ID || "(unset)"} affiliate: ${AFFILIATE_CODE || "(unset)"}`);
+console.log(`[edad-chat] cloud:      ${CLOUD_URL}`);
+console.log(`[edad-chat] app_id:     ${APP_ID || "(unset)"}`);
+console.log(`[edad-chat] affiliate:  ${AFFILIATE_CODE || "(unset)"}`);

@@ -7,5 +7,8 @@
   "scripts": {
     "start": "bun run server.ts",
     "dev": "bun --hot run server.ts"
+  },
+  "dependencies": {
+    "@elizaos/cloud-sdk": "^0.1.0"
   }
 }
