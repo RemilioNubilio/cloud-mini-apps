@@ -1,23 +1,20 @@
 /**
- * eDad ↔ eliza cloud proxy.
+ * eDad-chat ↔ eliza cloud proxy.
  *
- * Forwards /apps/edad/api/* to ELIZA_API_BASE (default https://www.elizacloud.ai/api/v1).
+ * Forwards `/api/*` to ELIZA_API_BASE (default https://www.elizacloud.ai/api/v1).
  *
- * The one special route handled locally is `/apps/edad/api/config`, which returns
- * non-secret OAuth config the browser needs to initiate the "Sign in with Eliza
- * Cloud" flow (app_id, cloud_url). The app is registered at elizacloud.ai and
- * the `app_id` UUID is stored server-side in ELIZA_APP_ID.
+ * The one special route handled locally is `/api/config`, which returns the
+ * non-secret OAuth config the browser needs to initiate the
+ * "Sign in with Eliza Cloud" flow (app_id, cloud_url).
  *
- * Auth resolution order for proxied requests:
- *   1. `x-user-token` — a Privy/Steward JWT obtained via the OAuth redirect flow
- *      (the user signed in with eliza cloud, so their credits are charged).
- *   2. `x-user-api-key` — legacy BYOK path, still supported as a fallback for
- *      users who paste their own `ek_...` key.
- *   3. `ELIZA_API_KEY` server env — owner-paid fallback.
+ * Auth: every proxied request must carry `x-user-token` (a Steward JWT from
+ * the OAuth redirect). There is no operator-paid fallback — usage always
+ * lands on the signed-in user's cloud credit balance, which keeps the
+ * monetization story honest (creator + affiliate share is a real cut of
+ * the user's own credits, not a freebie the operator subsidises).
  *
- * Monetization: always forwards `X-Affiliate-Code` (ELIZA_AFFILIATE_CODE, default
- * "edad") so the app owner earns the affiliate markup regardless of which auth
- * method paid.
+ * Always forwards `X-Affiliate-Code` (ELIZA_AFFILIATE_CODE) so the app
+ * owner earns the affiliate share alongside the creator markup.
  */
 import type { NextRequest } from "next/server";
 
@@ -43,38 +40,28 @@ async function handler(
   // Local config endpoint: hands the browser the app_id + cloud URL it needs
   // to build the OAuth authorize URL. Never returns secrets.
   if (segments.length === 1 && segments[0] === "config") {
-    return Response.json({
-      app_id: APP_ID || null,
-      cloud_url: CLOUD_URL,
-      affiliate_code: AFFILIATE_CODE,
-      server_key_available: false,
-    }, { headers: { "cache-control": "no-store" } });
+    return Response.json(
+      { app_id: APP_ID || null, cloud_url: CLOUD_URL, affiliate_code: AFFILIATE_CODE },
+      { headers: { "cache-control": "no-store" } },
+    );
   }
 
   const userToken = req.headers.get("x-user-token")?.trim();
-  const userKey = req.headers.get("x-user-api-key")?.trim();
+  if (!userToken) {
+    return jsonError(
+      401,
+      "not_signed_in",
+      "dad needs you to sign in with eliza cloud first, champ. hit the sign-in button up top.",
+    );
+  }
 
   const fwd: Record<string, string> = {
     "content-type": req.headers.get("content-type") ?? "application/json",
     "anthropic-version": "2023-06-01",
+    authorization: `Bearer ${userToken}`,
   };
   if (AFFILIATE_CODE) fwd["x-affiliate-code"] = AFFILIATE_CODE;
   if (APP_ID) fwd["x-app-id"] = APP_ID;
-
-  if (userToken) {
-    // OAuth JWT (Privy or Steward) — send as Bearer only, not x-api-key.
-    fwd.authorization = `Bearer ${userToken}`;
-  } else if (userKey) {
-    // BYOK — user-supplied eliza cloud API key.
-    fwd.authorization = `Bearer ${userKey}`;
-    fwd["x-api-key"] = userKey;
-  } else {
-    return jsonError(
-      401,
-      "not_signed_in",
-      "dad needs you to sign in with eliza cloud first, champ. hit the sign-in button up top or paste your own key.",
-    );
-  }
 
   const target = `${UPSTREAM}/${segments.join("/")}${new URL(req.url).search}`;
 

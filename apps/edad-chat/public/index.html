@@ -67,31 +67,12 @@
       <button type="submit" id="send-btn">send</button>
     </form>
 
-    <p class="byok-link"><a href="#" id="byok-link">have an eliza cloud API key? paste it instead</a></p>
   </main>
 
 </div>
 
-<!-- BYOK fallback modal (hidden unless user clicks the link) -->
-<div class="modal" id="byok-modal" hidden>
-  <div class="modal-card">
-    <button class="modal-close" id="byok-close" aria-label="close">×</button>
-    <h2>paste an api key</h2>
-    <p>for the old-school route. get one at <a href="https://www.elizacloud.ai/dashboard/api-keys" target="_blank" rel="noopener">elizacloud.ai/dashboard/api-keys</a>. it stays in this browser.</p>
-    <form id="byok-form" autocomplete="off" onsubmit="return false;">
-      <label for="api-key">your api key (starts with <code>eliza_</code>)</label>
-      <input type="password" id="api-key" placeholder="eliza_..." autocomplete="off" spellcheck="false" />
-      <div class="modal-actions">
-        <button type="button" id="byok-clear" class="ghost">clear</button>
-        <button type="submit" id="byok-save" class="primary">save</button>
-      </div>
-    </form>
-  </div>
-</div>
-
 <script>
 const TOKEN_KEY = "edad.oauthToken";
-const BYOK_KEY = "edad.apiKey";
 const STATE_KEY = "edad.oauthState";
 const API_BASE = "api"; // relative → /apps/edad/api/*
 const MODEL = "anthropic/claude-sonnet-4.6";
@@ -121,19 +102,13 @@ const els = {
   loginBtn: document.getElementById("login-btn"),
   logoutBtn: document.getElementById("logout-btn"),
   notice: document.getElementById("notice"),
-  byokLink: document.getElementById("byok-link"),
-  byokModal: document.getElementById("byok-modal"),
-  byokClose: document.getElementById("byok-close"),
-  apiKeyInput: document.getElementById("api-key"),
-  byokSave: document.getElementById("byok-save"),
-  byokClear: document.getElementById("byok-clear"),
   statusDot: document.getElementById("status-dot"),
   statusText: document.getElementById("status-text"),
 };
 
 const history = [];
 let inflight = false;
-let cfg = null; // { app_id, cloud_url, server_key_available }
+let cfg = null; // { app_id, cloud_url, affiliate_code }
 
 function ls(k) { try { return localStorage.getItem(k) || ""; } catch { return ""; } }
 function lsSet(k, v) { try { if (v) localStorage.setItem(k, v); else localStorage.removeItem(k); } catch {} }
@@ -141,8 +116,7 @@ function ss(k) { try { return sessionStorage.getItem(k) || ""; } catch { return 
 function ssSet(k, v) { try { if (v) sessionStorage.setItem(k, v); else sessionStorage.removeItem(k); } catch {} }
 
 function getToken() { return ls(TOKEN_KEY); }
-function getByokKey() { return ls(BYOK_KEY); }
-function isSignedIn() { return !!(getToken() || getByokKey()); }
+function isSignedIn() { return !!getToken(); }
 
 function setStatus(state, text) {
   els.statusDot.className = "dot " + state;
@@ -158,20 +132,14 @@ function setNotice(msg, kind) {
 
 function refreshAuthUI() {
   const signedIn = isSignedIn();
-  const viaToken = !!getToken();
   els.loginBtn.hidden = signedIn;
   els.logoutBtn.hidden = !signedIn;
   els.loginBtn.disabled = !cfg || !cfg.app_id;
   if (signedIn) {
-    els.logoutBtn.textContent = viaToken ? "sign out" : "clear key";
+    els.logoutBtn.textContent = "sign out";
     setNotice("");
-  } else if (cfg && !cfg.app_id && !cfg.server_key_available) {
-    setNotice("eDad isn't registered with eliza cloud yet. Use the API-key fallback below, or tell the owner to set ELIZA_APP_ID.", "warn");
-  } else if (cfg && !cfg.app_id && cfg.server_key_available) {
-    setNotice("");
-    els.loginBtn.textContent = "chatting on the house";
-    els.loginBtn.hidden = false;
-    els.loginBtn.disabled = true;
+  } else if (cfg && !cfg.app_id) {
+    setNotice("eDad isn't registered with eliza cloud yet. Tell the owner to set ELIZA_APP_ID.", "warn");
   }
 }
 
@@ -209,7 +177,7 @@ async function loadConfig() {
     if (!res.ok) throw new Error("config fetch failed");
     cfg = await res.json();
   } catch {
-    cfg = { app_id: null, cloud_url: "https://www.elizacloud.ai", server_key_available: false };
+    cfg = { app_id: null, cloud_url: "https://www.elizacloud.ai", affiliate_code: "" };
   }
 }
 
@@ -236,7 +204,6 @@ function handleOAuthCallback() {
   }
 
   lsSet(TOKEN_KEY, token);
-  lsSet(BYOK_KEY, ""); // prefer OAuth over any leftover pasted key
   cleanUrl();
   setNotice("signed in with eliza cloud. chat away.", "ok");
   setTimeout(() => setNotice(""), 3500);
@@ -248,12 +215,12 @@ function cleanUrl() {
   url.searchParams.delete("state");
   url.searchParams.delete("error");
   url.searchParams.delete("error_description");
-  history.replaceState({}, "", url.pathname + (url.search || "") + url.hash);
+  window.history.replaceState({}, "", url.pathname + (url.search || "") + url.hash);
 }
 
 function startLogin() {
   if (!cfg || !cfg.app_id) {
-    setNotice("eDad isn't registered with eliza cloud yet. Use the API-key fallback below.", "warn");
+    setNotice("eDad isn't registered with eliza cloud yet.", "warn");
     return;
   }
   const state = randomState();
@@ -270,7 +237,6 @@ function startLogin() {
 
 function logout() {
   lsSet(TOKEN_KEY, "");
-  lsSet(BYOK_KEY, "");
   refreshAuthUI();
   setNotice("signed out.", "ok");
   setTimeout(() => setNotice(""), 2000);
@@ -292,9 +258,7 @@ async function send(text) {
   try {
     const headers = { "content-type": "application/json" };
     const token = getToken();
-    const byok = getByokKey();
     if (token) headers["x-user-token"] = token;
-    else if (byok) headers["x-user-api-key"] = byok;
 
     const res = await fetch(API_BASE + "/messages/", {
       method: "POST",
@@ -360,29 +324,6 @@ els.input.addEventListener("keydown", (e) => {
 
 els.loginBtn.addEventListener("click", startLogin);
 els.logoutBtn.addEventListener("click", logout);
-
-// BYOK fallback wiring
-els.byokLink.addEventListener("click", (e) => {
-  e.preventDefault();
-  els.byokModal.hidden = false;
-  els.apiKeyInput.value = getByokKey();
-  els.apiKeyInput.focus();
-});
-els.byokClose.addEventListener("click", () => { els.byokModal.hidden = true; });
-els.byokModal.addEventListener("click", (e) => { if (e.target === els.byokModal) els.byokModal.hidden = true; });
-els.byokSave.addEventListener("click", () => {
-  const v = els.apiKeyInput.value.trim();
-  lsSet(BYOK_KEY, v);
-  if (v) lsSet(TOKEN_KEY, ""); // pasted key takes over from oauth
-  els.byokModal.hidden = true;
-  refreshAuthUI();
-});
-els.byokClear.addEventListener("click", () => {
-  lsSet(BYOK_KEY, "");
-  els.apiKeyInput.value = "";
-  els.byokModal.hidden = true;
-  refreshAuthUI();
-});
 
 (async () => {
   handleOAuthCallback();
